@@ -17,7 +17,7 @@ export function Home({ started, reducedMotion, onParticlesReady }: HomeProps) {
           started ? 'opacity-45' : 'opacity-0'
         }`}
       >
-        Arraste para misturar · role para baixo
+        Passe por cima para misturar · role para baixo
       </p>
     </section>
   )
