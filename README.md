@@ -19,9 +19,6 @@ npm run dev
 
 5. Abra o endereço que aparecer (normalmente http://localhost:5173).
 
-> A TV aparece só uma vez por sessão. Para ver de novo, feche a aba e abra outra,
-> ou rode `sessionStorage.clear()` no console do navegador e recarregue.
-
 ## Comandos
 
 | Comando           | O que faz                                   |
@@ -49,8 +46,7 @@ src/
 │   └── ui/                peças reutilizáveis (cards, faixa de tecnologias…)
 ├── lib/
 │   ├── particles/         motor das partículas em Three.js
-│   ├── hiss.ts            som do chiado (gerado, sem arquivo)
-│   └── storage.ts         sessionStorage com proteção
+│   └── hiss.ts            som do chiado (gerado, sem arquivo)
 ├── hooks/                 scroll suave, seção ativa, movimento reduzido
 └── index.css              Tailwind, fontes e cores do tema
 ```

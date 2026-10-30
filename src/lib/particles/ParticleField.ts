@@ -17,8 +17,9 @@ import {
  * Como funciona:
  * 1. O texto é desenhado com a fonte num canvas invisível.
  * 2. Cada pixel preenchido vira o "destino" (casa) de uma partícula.
- * 3. A cada quadro, uma mola puxa cada partícula para a casa dela e o mouse
- *    empurra (passando por cima) ou arrasta (clicando e arrastando).
+ * 3. A cada quadro, uma mola puxa cada partícula para a casa dela (que flutua
+ *    de leve) e o mouse empurra e carrega as partículas só de passar por cima.
+ *    Clicando e arrastando, o raio cresce e elas giram em volta do ponteiro.
  *
  * Fases:
  * - idle: nada é desenhado (esperando a tela da TV).
@@ -50,14 +51,22 @@ interface Particle {
   big: boolean
   /** Atraso (0–1) para se soltar do chiado durante a montagem. */
   delay: number
+  /** Fase (radianos) da flutuação em volta da casa. */
+  phase: number
 }
 
 const MAX_PARTICLES = 90_000
 const STATIC_MS = 380
 const RELEASE_SPREAD_MS = 1100
-const SPRING = 0.03
-const DAMPING = 0.84
+const SPRING = 0.024
+const DAMPING = 0.86
 const TRAIL_FADE = 0.45
+const DRIFT_PX = 1.4
+const HOVER_FORCE = 3.2
+const CARRY_FORCE = 0.3
+const GRAB_CARRY_FORCE = 0.85
+const GRAB_SWIRL_FORCE = 2.6
+const OFFSCREEN = -1e4
 
 const pointsVertex = /* glsl */ `
   attribute float aSize;
@@ -114,7 +123,7 @@ export class ParticleField {
   private raf = 0
   private disposed = false
 
-  private pointer = { x: -1e4, y: -1e4, px: -1e4, py: -1e4, down: false }
+  private pointer = { x: OFFSCREEN, y: OFFSCREEN, px: OFFSCREEN, py: OFFSCREEN, down: false }
   private resizeObserver: ResizeObserver
   private visibilityObserver: IntersectionObserver
   private resizeTimer = 0
@@ -128,7 +137,7 @@ export class ParticleField {
     this.renderer.setClearColor(0x000000, 1)
     const canvas = this.renderer.domElement
     canvas.style.cssText =
-      'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab'
+      'position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:pan-y;cursor:grab'
     container.appendChild(canvas)
 
     this.fadeMaterial = new ShaderMaterial({
@@ -183,7 +192,10 @@ export class ParticleField {
     window.clearTimeout(this.resizeTimer)
     this.resizeObserver.disconnect()
     this.visibilityObserver.disconnect()
+    window.removeEventListener('pointermove', this.onPointerMove)
     window.removeEventListener('pointerup', this.onPointerUp)
+    window.removeEventListener('pointercancel', this.onPointerUp)
+    document.documentElement.removeEventListener('pointerleave', this.clearPointer)
     this.geometry.dispose()
     this.pointsMaterial.dispose()
     this.fadeMaterial.dispose()
@@ -259,6 +271,7 @@ export class ParticleField {
         shade: prev ? prev.shade : (110 + Math.random() * 145) / 255,
         big: prev ? prev.big : Math.random() < 0.25,
         delay: prev ? prev.delay : Math.pow(Math.random(), 1.6),
+        phase: prev ? prev.phase : Math.random() * Math.PI * 2,
       }
     })
 
@@ -282,28 +295,39 @@ export class ParticleField {
   /* ---------- interação ---------- */
 
   private bindPointer(canvas: HTMLCanvasElement) {
-    const setPos = (e: PointerEvent) => {
-      const r = canvas.getBoundingClientRect()
-      this.pointer.x = e.clientX - r.left
-      this.pointer.y = e.clientY - r.top
-    }
-    canvas.addEventListener('pointermove', setPos)
     canvas.addEventListener('pointerdown', (e) => {
       this.pointer.down = true
-      setPos(e)
-      this.pointer.px = this.pointer.x
-      this.pointer.py = this.pointer.y
+      this.onPointerMove(e)
       canvas.style.cursor = 'grabbing'
     })
-    canvas.addEventListener('pointerleave', () => {
-      this.pointer.x = this.pointer.y = this.pointer.px = this.pointer.py = -1e4
-    })
+    // Na janela, e não no canvas: o cabeçalho e outros elementos por cima não cortam a interação.
+    window.addEventListener('pointermove', this.onPointerMove, { passive: true })
     window.addEventListener('pointerup', this.onPointerUp)
+    window.addEventListener('pointercancel', this.onPointerUp)
+    document.documentElement.addEventListener('pointerleave', this.clearPointer)
   }
 
-  private onPointerUp = () => {
+  private onPointerMove = (e: PointerEvent) => {
+    const r = this.container.getBoundingClientRect()
+    const x = e.clientX - r.left
+    const y = e.clientY - r.top
+    if (x < 0 || y < 0 || x > r.width || y > r.height) {
+      this.clearPointer()
+      return
+    }
+    this.pointer.x = x
+    this.pointer.y = y
+  }
+
+  private onPointerUp = (e: PointerEvent) => {
     this.pointer.down = false
     this.renderer.domElement.style.cursor = 'grab'
+    // No toque não existe "passar por cima": ao soltar o dedo, o ponteiro some.
+    if (e.pointerType !== 'mouse') this.clearPointer()
+  }
+
+  private clearPointer = () => {
+    this.pointer.x = this.pointer.y = this.pointer.px = this.pointer.py = OFFSCREEN
   }
 
   /* ---------- quadro a quadro ---------- */
@@ -324,12 +348,18 @@ export class ParticleField {
     const W = this.width
     const H = this.height
     const pt = this.pointer
-    const radius = pt.down ? 95 : 55
+    // O raio acompanha o tamanho da tela, para o efeito não sumir nos monitores grandes.
+    const baseRadius = Math.max(90, Math.min(170, Math.min(W, H) * 0.17))
+    const radius = pt.down ? baseRadius * 1.5 : baseRadius
     const r2 = radius * radius
-    const mvx = pt.x - pt.px
-    const mvy = pt.y - pt.py
+    // Quando o ponteiro acaba de entrar na tela ainda não há movimento para medir.
+    const hasPrev = pt.px !== OFFSCREEN
+    const mvx = hasPrev ? pt.x - pt.px : 0
+    const mvy = hasPrev ? pt.y - pt.py : 0
     pt.px = pt.x
     pt.py = pt.y
+    const driftT = now * 0.0009
+    const drift = reduced ? 0 : DRIFT_PX
 
     const pos = this.positions
     const sizes = this.sizes
@@ -352,17 +382,17 @@ export class ParticleField {
         if (d2 < r2) {
           const dist = Math.sqrt(d2)
           const k = 1 - dist / radius
+          const inv = 1 / (dist + 0.01)
           if (pt.down) {
-            p.vx += mvx * k * 0.5 + (Math.random() - 0.5) * 4 * k
-            p.vy += mvy * k * 0.5 + (Math.random() - 0.5) * 4 * k
+            p.vx += mvx * k * GRAB_CARRY_FORCE - dy * inv * k * GRAB_SWIRL_FORCE + (Math.random() - 0.5) * 3 * k
+            p.vy += mvy * k * GRAB_CARRY_FORCE + dx * inv * k * GRAB_SWIRL_FORCE + (Math.random() - 0.5) * 3 * k
           } else {
-            const inv = 1 / (dist + 0.01)
-            p.vx += dx * inv * k * 2.2
-            p.vy += dy * inv * k * 2.2
+            p.vx += dx * inv * k * HOVER_FORCE + mvx * k * CARRY_FORCE
+            p.vy += dy * inv * k * HOVER_FORCE + mvy * k * CARRY_FORCE
           }
         }
-        p.vx += (p.hx - p.x) * SPRING
-        p.vy += (p.hy - p.y) * SPRING
+        p.vx += (p.hx + Math.sin(driftT + p.phase) * drift - p.x) * SPRING
+        p.vy += (p.hy + Math.cos(driftT * 0.8 + p.phase) * drift - p.y) * SPRING
         p.vx *= DAMPING
         p.vy *= DAMPING
         p.x += p.vx
