@@ -1,0 +1,129 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter-tight';
+
+@font-face {
+  font-family: 'Sanguine Frost';
+  src: url('/fonts/SanguineFrost.ttf') format('truetype');
+  font-display: block;
+}
+
+/* Tokens do tema — use como classes do Tailwind: bg-ink, text-paper, font-gothic... */
+@theme {
+  --color-ink: #000000;
+  --color-paper: #ededed;
+  --color-line: rgb(255 255 255 / 0.06);
+
+  --font-sans: 'Inter Tight Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-gothic: 'Sanguine Frost', serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
+  --ease-crt: cubic-bezier(0.7, 0, 0.2, 1);
+
+  --animate-blink: blink 1.1s steps(1) infinite;
+  --animate-roll: roll 5.5s linear infinite;
+  --animate-flicker: flicker 4s steps(1) infinite;
+  --animate-marquee: marquee 18s linear infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+
+  @keyframes blink {
+    50% {
+      opacity: 0.35;
+    }
+  }
+  @keyframes roll {
+    from {
+      top: -25%;
+    }
+    to {
+      top: 100%;
+    }
+  }
+  @keyframes flicker {
+    0% {
+      opacity: 1;
+    }
+    31% {
+      opacity: 0.94;
+    }
+    32% {
+      opacity: 1;
+    }
+    77% {
+      opacity: 0.97;
+    }
+    78% {
+      opacity: 1;
+    }
+  }
+}
+
+@layer base {
+  html {
+    background: var(--color-ink);
+    color: var(--color-paper);
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    font-family: var(--font-sans);
+  }
+  body.is-locked {
+    overflow: hidden;
+  }
+  ::selection {
+    background: var(--color-paper);
+    color: var(--color-ink);
+  }
+}
+
+/* Lenis (scroll suave) */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+/* Efeitos da TV antiga que ficam mais legíveis em CSS do que em classes utilitárias */
+.crt-scanlines::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgb(0 0 0 / 0.32) 0 1px, transparent 1px 3px);
+}
+.crt-scanlines::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(ellipse at center, transparent 55%, rgb(0 0 0 / 0.75) 100%);
+  box-shadow: inset 0 0 90px rgb(0 0 0 / 0.9);
+  transition: opacity 0.75s;
+}
+.crt-full.crt-scanlines::after {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
