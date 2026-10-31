@@ -1,5 +1,5 @@
 import { useEffect, useImperativeHandle, useRef, useState } from 'react'
-import type { Ref } from 'react'
+import type { Ref, RefObject } from 'react'
 import type { ContactStage } from '../../lib/contact/ContactStage'
 
 export interface Contact3DHandle {
@@ -8,11 +8,13 @@ export interface Contact3DHandle {
 
 interface Contact3DProps {
   reducedMotion: boolean
+  /** Camada por cima das placas, onde a arma é desenhada. */
+  gunLayerRef: RefObject<HTMLDivElement | null>
   ref?: Ref<Contact3DHandle>
   className?: string
 }
 
-export function Contact3D({ reducedMotion, ref, className = '' }: Contact3DProps) {
+export function Contact3D({ reducedMotion, gunLayerRef, ref, className = '' }: Contact3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<ContactStage | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -21,11 +23,12 @@ export function Contact3D({ reducedMotion, ref, className = '' }: Contact3DProps
 
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
+    const gunLayer = gunLayerRef.current
+    if (!container || !gunLayer) return
     let cancelled = false
     import('../../lib/contact/ContactStage').then(({ ContactStage }) => {
       if (cancelled) return
-      stageRef.current = new ContactStage(container, reducedMotion, () => setLoaded(true))
+      stageRef.current = new ContactStage(container, gunLayer, reducedMotion, () => setLoaded(true))
     })
     return () => {
       cancelled = true
@@ -33,7 +36,7 @@ export function Contact3D({ reducedMotion, ref, className = '' }: Contact3DProps
       stageRef.current = null
       setLoaded(false)
     }
-  }, [reducedMotion])
+  }, [reducedMotion, gunLayerRef])
 
   return (
     <div

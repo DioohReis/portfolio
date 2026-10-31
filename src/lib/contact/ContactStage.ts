@@ -7,6 +7,7 @@ const GUN_URL = '/models/supershotgun.glb'
 const FOV = 62
 /** Ponto do mapa de onde se olha e para onde. */
 const VIEW = { position: new THREE.Vector3(-1056, 41, -3616), look: new THREE.Vector3(-1056, 6, -3300) }
+const GUN_Y = -0.3
 const RECOIL_DECAY = 0.86
 const FLASH_DECAY = 0.72
 /** Mapa mais escuro que o original, para os contatos se destacarem. */
@@ -18,9 +19,10 @@ const MAP_SHADE = 0.5
  */
 export class ContactStage {
   private renderer: THREE.WebGLRenderer
+  /** A arma tem canvas próprio, por cima das placas de contato. */
+  private gunRenderer: THREE.WebGLRenderer
   private scene = new THREE.Scene()
   private camera = new THREE.PerspectiveCamera(FOV, 1, 1, 9000)
-  /** A arma tem cena e câmera próprias, para nunca entrar nas paredes. */
   private gunScene = new THREE.Scene()
   private gunCamera = new THREE.PerspectiveCamera(40, 1, 0.01, 20)
   private gun = new THREE.Group()
@@ -41,20 +43,25 @@ export class ContactStage {
   private smoothY = 0
   private recoil = 0
   private flashLevel = 0
+  private gunY = GUN_Y
 
-  constructor(container: HTMLElement, reducedMotion: boolean, onLoaded: () => void) {
+  constructor(container: HTMLElement, gunContainer: HTMLElement, reducedMotion: boolean, onLoaded: () => void) {
     this.container = container
     this.reducedMotion = reducedMotion
     this.onLoaded = onLoaded
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     this.renderer.setClearColor(0x050303)
-    this.renderer.autoClear = false
     this.renderer.domElement.style.display = 'block'
     this.renderer.domElement.addEventListener('webglcontextlost', () => {
       this.renderer.domElement.style.visibility = 'hidden'
     })
     container.appendChild(this.renderer.domElement)
+
+    this.gunRenderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
+    this.gunRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
+    this.gunRenderer.domElement.style.display = 'block'
+    gunContainer.appendChild(this.gunRenderer.domElement)
 
     this.scene.fog = new THREE.Fog(0x050303, 500, 2600)
     this.camera.position.copy(VIEW.position)
@@ -126,6 +133,8 @@ export class ContactStage {
     }
     this.renderer.dispose()
     this.renderer.domElement.remove()
+    this.gunRenderer.dispose()
+    this.gunRenderer.domElement.remove()
   }
 
   private handlePointer = (event: PointerEvent) => this.setAim(event.clientX, event.clientY)
@@ -172,6 +181,7 @@ export class ContactStage {
     const { clientWidth: width, clientHeight: height } = this.container
     if (!width || !height) return
     this.renderer.setSize(width, height)
+    this.gunRenderer.setSize(width, height)
     const aspect = width / height
     this.camera.aspect = aspect
     this.camera.updateProjectionMatrix()
@@ -179,6 +189,7 @@ export class ContactStage {
     this.gunCamera.updateProjectionMatrix()
     // Em tela estreita a arma recua, para continuar inteira.
     this.gunCamera.position.set(0, 0, aspect < 0.8 ? 2.1 : 1.35)
+    this.gunY = aspect < 0.8 ? GUN_Y - 0.2 : GUN_Y
     this.render()
   }
 
@@ -209,7 +220,7 @@ export class ContactStage {
     const sway = this.reducedMotion ? 0 : Math.sin(time * 1.6) * 0.006
     this.gun.position.set(
       this.smoothX * 0.1,
-      GUN_Y + sway - this.smoothY * 0.03 - this.recoil * 0.02,
+      this.gunY + sway - this.smoothY * 0.03 - this.recoil * 0.02,
       this.recoil * 0.22,
     )
     this.gun.rotation.set(-this.smoothY * 0.34 + this.recoil * 0.3, -this.smoothX * 0.52, 0)
@@ -229,14 +240,11 @@ export class ContactStage {
   }
 
   private render() {
-    this.renderer.clear()
     this.renderer.render(this.scene, this.camera)
-    this.renderer.clearDepth()
-    this.renderer.render(this.gunScene, this.gunCamera)
+    this.gunRenderer.render(this.gunScene, this.gunCamera)
   }
 }
 
-const GUN_Y = -0.3
 const GUN_ROTATION = new THREE.Euler(-Math.PI / 4, 0, 0)
 
 /** Clarão do tiro, desenhado em canvas: núcleo branco e pontas alaranjadas. */

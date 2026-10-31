@@ -27,6 +27,7 @@ export function Contact({ reducedMotion }: ContactProps) {
   const stageRef = useRef<Contact3DHandle>(null)
   const sectionRef = useRef<HTMLElement>(null)
   const crosshairRef = useRef<HTMLDivElement>(null)
+  const gunLayerRef = useRef<HTMLDivElement>(null)
   const nextHole = useRef(0)
   const timers = useRef<number[]>([])
   const [holes, setHoles] = useState<Hole[]>([])
@@ -94,7 +95,12 @@ export function Contact({ reducedMotion }: ContactProps) {
       className="relative h-svh min-h-160 cursor-crosshair overflow-hidden bg-black select-none [@media(hover:hover)]:cursor-none"
     >
       <div className={`absolute inset-0 ${shaking ? 'animate-shot-shake' : ''}`}>
-        <Contact3D ref={stageRef} reducedMotion={reducedMotion} className="absolute inset-0" />
+        <Contact3D
+          ref={stageRef}
+          gunLayerRef={gunLayerRef}
+          reducedMotion={reducedMotion}
+          className="absolute inset-0"
+        />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_40%,rgb(0_0_0/0.72))]" />
         <div className="pointer-events-none absolute inset-x-0 top-0 h-52 bg-linear-to-b from-black/80 to-transparent" />
       </div>
@@ -132,6 +138,9 @@ export function Contact({ reducedMotion }: ContactProps) {
           </li>
         ))}
       </ul>
+
+      {/* A arma fica à frente das placas, sem bloquear o clique nelas. */}
+      <div ref={gunLayerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" />
 
       {/* Buracos de bala. */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-0">
