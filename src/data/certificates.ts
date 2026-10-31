@@ -9,10 +9,16 @@ export interface Certificate {
 }
 
 /**
- * Do mais recente para o mais antigo. Fontes: perfil público do LinkedIn (com link e imagem) e currículo (os dois
- * últimos, sem data nem imagem). O perfil público só mostra cinco certificados: os demais precisam entrar aqui à mão.
+ * Do mais recente para o mais antigo. Fontes: perfil público do LinkedIn, PDFs enviados e currículo. As imagens
+ * dos PDFs têm RG e data de nascimento apagados: nunca publicar os originais. O perfil público só mostra cinco certificados: os demais precisam entrar aqui à mão.
  */
 export const CERTIFICATES: Certificate[] = [
+  {
+    title: 'Qualificação Profissional em Análise de Sistemas e Prototipação Web',
+    issuer: 'FIAP · Gold Certified',
+    date: 'jun. 2026',
+    image: '/images/certificados/qualificacao.webp',
+  },
   {
     title: 'Python Development',
     issuer: 'FIAP · Nano Course, 80 h',
@@ -51,6 +57,12 @@ export const CERTIFICATES: Certificate[] = [
       'https://on.fiap.com.br/local/nanocourses/gerar_certificado.php?chave=75a7a366cdb8ed251850b73c88ccc067&action=view',
     image: '/images/certificados/social.webp',
   },
-  { title: 'Cibersegurança com Soluções Fortinet', issuer: 'SENAI' },
+  {
+    title: 'Cibersegurança com Soluções Fortinet',
+    issuer: 'SENAI · 60 h',
+    date: 'jun. 2025',
+    credentialUrl: 'https://www.sp.senai.br/consulta-certificado?qrcode=10125148357/15151014',
+    image: '/images/certificados/fortinet.webp',
+  },
   { title: 'Desenvolvimento de Aplicativos', issuer: 'Estação Hack · Facebook' },
 ]
