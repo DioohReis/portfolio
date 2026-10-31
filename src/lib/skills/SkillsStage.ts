@@ -96,9 +96,6 @@ export class SkillsStage {
     fill.position.set(0, 10, 30)
     this.scene.add(this.heldLight, this.lamp, rim, fill, new THREE.HemisphereLight(0x8aa498, 0x141010, 0.14))
 
-    this.camera.position.set(2, 10.5, 31)
-    this.camera.lookAt(2, 7.5, -4)
-
     container.addEventListener('pointermove', this.handleMove)
     container.addEventListener('pointerleave', this.handleLeave)
     container.addEventListener('click', this.handleClick)
@@ -257,6 +254,10 @@ export class SkillsStage {
     const tangent = Math.max(Math.tan(THREE.MathUtils.degToRad(FOV / 2)), 0.6 / aspect)
     this.camera.fov = THREE.MathUtils.radToDeg(Math.atan(tangent)) * 2
     this.camera.aspect = aspect
+    // Em tela em pé a cena sobe, para o zumbi e os logos ficarem acima do arquivo aberto.
+    const narrow = aspect < 0.8
+    this.camera.position.set(narrow ? 3 : 2, 10.5, 31)
+    this.camera.lookAt(narrow ? 3 : 2, narrow ? -8 : 7.5, -4)
     this.camera.updateProjectionMatrix()
     this.render()
   }
