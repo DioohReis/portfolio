@@ -31,6 +31,10 @@ export function Projects({ reducedMotion }: ProjectsProps) {
       {/* No celular, o texto cobre a parte de baixo da cena e esconde o corte do avatar. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[56%] bg-linear-to-t from-ink from-70% to-transparent lg:hidden" />
 
+      {/* Sombra atrás do texto, para ele continuar legível sobre as asas. */}
+      <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/5 bg-linear-to-l from-ink from-40% via-ink/80 to-transparent lg:block" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/4 bg-linear-to-r from-ink/70 to-transparent lg:block" />
+
       <h1 className="pointer-events-none absolute top-28 left-6 text-[clamp(40px,5vw,72px)] leading-none font-semibold tracking-[-0.04em] lg:top-32 lg:left-10">
         Projetos
       </h1>

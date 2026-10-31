@@ -1,13 +1,13 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
-import { createLightningSpear, paintDragon } from './paintDragon'
+import { paintDragon } from './paintDragon'
 
 const DRAGON_URL = '/models/fortissax.glb'
 const FOV = 34
-const RADIUS = 3
-const PANEL_WIDTH = 3.15
-const PANEL_HEIGHT = 1.97
+const RADIUS = 3.7
+const PANEL_WIDTH = 3.1
+const PANEL_HEIGHT = 1.94
 /** O projeto ativo descansa um pouco à esquerda, deixando o dragão à mostra. */
 const REST_ANGLE = 0.72
 const EASE = 0.07
@@ -40,7 +40,7 @@ const panelVertex = /* glsl */ `
 /* A imagem se separa em vermelho, verde e azul conforme o carrossel ganha velocidade. */
 const panelFragment = /* glsl */ `
   uniform sampler2D uMap;
-  uniform float uShift, uLight;
+  uniform float uShift, uLight, uFade;
   varying vec2 vUv;
   void main() {
     vec2 shift = vec2(uShift, uShift * 0.25);
@@ -51,7 +51,7 @@ const panelFragment = /* glsl */ `
     );
     vec2 edge = abs(vUv - 0.5) * 2.0;
     float shade = 1.0 - smoothstep(0.75, 1.0, max(edge.x, edge.y)) * 0.25;
-    gl_FragColor = vec4(color * shade * uLight, 1.0);
+    gl_FragColor = vec4(color * shade * uLight, uFade);
   }
 `
 
@@ -82,9 +82,6 @@ export class ProjectsStage {
   private camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 60)
   private ring = new THREE.Group()
   private figure = new THREE.Group()
-  private spear = createLightningSpear(4.6)
-  private spearLight = new THREE.PointLight(0xff2a18, 4, 6, 1.8)
-  private dragonTime: { value: number } | null = null
   private panels: Panel[] = []
   private dust: THREE.Points
   private raycaster = new THREE.Raycaster()
@@ -124,13 +121,20 @@ export class ProjectsStage {
     this.ring.position.y = -0.7
     this.ring.rotation.x = 0.1
     this.ring.rotation.z = -0.05
-    const rimLeft = new THREE.DirectionalLight(0xc8d0e0, 1.6)
+    const rimLeft = new THREE.DirectionalLight(0xdfe4ea, 1.1)
     rimLeft.position.set(-3, 2, -3)
-    const rimRight = new THREE.DirectionalLight(0xffc890, 1.4)
+    const rimRight = new THREE.DirectionalLight(0xffd8b0, 1.1)
     rimRight.position.set(3, 2, -3)
-    const front = new THREE.DirectionalLight(0xfff0e4, 1)
-    front.position.set(0, 2, 5)
-    this.scene.add(new THREE.HemisphereLight(0xb8bcc4, 0x141414, 0.6), rimLeft, rimRight, front, this.ring, this.figure)
+    const front = new THREE.DirectionalLight(0xfff4ea, 2.4)
+    front.position.set(-1.5, 4, 5)
+    this.scene.add(
+      new THREE.HemisphereLight(0xe8e6e0, 0x2a2622, 0.55),
+      rimLeft,
+      rimRight,
+      front,
+      this.ring,
+      this.figure,
+    )
 
     this.dust = createDust()
     this.scene.add(this.dust)
@@ -197,17 +201,10 @@ export class ProjectsStage {
     ])
     if (this.disposed) return
 
-    // Voando em direção à câmera, com o peito erguido, atrás do anel de telas.
-    dragon.rotation.x = -0.72
-    dragon.scale.setScalar(5.2)
-    dragon.position.set(0, -2.35, -1.6)
-    this.dragonTime = paintDragon(dragon, new THREE.Vector3(0, 0.3, 0.17))
-
-    this.spear.rotation.set(0, 0, 0.5)
-    this.spear.position.set(-0.45, -1.15, 1.1)
-    this.figure.add(this.spear)
-    this.spearLight.position.set(-0.3, -0.9, 1.6)
-    this.figure.add(this.spearLight)
+    // De frente para a câmera, com a cabeça no meio da tela e as asas abertas até as bordas.
+    dragon.scale.setScalar(11.5)
+    dragon.position.set(0, -3.25, -4.6)
+    paintDragon(dragon)
     this.figure.add(dragon)
 
     const geometry = arcGeometry(RADIUS, PANEL_WIDTH, PANEL_HEIGHT)
@@ -220,7 +217,8 @@ export class ProjectsStage {
         vertexShader: panelVertex,
         fragmentShader: panelFragment,
         side: THREE.DoubleSide,
-        uniforms: { uMap: { value: texture }, uShift: { value: 0 }, uLight: { value: 1 } },
+        transparent: true,
+        uniforms: { uMap: { value: texture }, uShift: { value: 0 }, uLight: { value: 1 }, uFade: { value: 1 } },
       })
       const glow = new THREE.ShaderMaterial({
         vertexShader: panelVertex,
@@ -267,7 +265,9 @@ export class ProjectsStage {
       -((event.clientY - rect.top) / rect.height) * 2 + 1,
     )
     this.raycaster.setFromCamera(this.pointer, this.camera)
-    const [hit] = this.raycaster.intersectObjects(this.panels.map((panel) => panel.mesh))
+    const [hit] = this.raycaster.intersectObjects(
+      this.panels.filter((panel) => panel.mesh.visible).map((panel) => panel.mesh),
+    )
     return hit ? (hit.object.userData.index as number) : null
   }
 
@@ -320,11 +320,10 @@ export class ProjectsStage {
     // Em tela estreita a câmera se afasta para o anel continuar cabendo.
     const narrow = aspect < 1.1
     const distance = Math.max(9, 4.3 / (tangent * aspect))
-    // Na tela larga a cena vai para a esquerda, abrindo espaço para o texto do projeto.
-    this.ring.position.x = this.figure.position.x = narrow ? 0 : -1.05
+    this.ring.position.x = this.figure.position.x = 0
     this.camera.aspect = aspect
     this.camera.position.set(0, 0.3, distance)
-    this.camera.lookAt(0, narrow ? -2.4 : -0.45, 0)
+    this.camera.lookAt(0, narrow ? -1.5 : -0.15, 0)
     this.camera.updateProjectionMatrix()
     this.render()
   }
@@ -353,12 +352,7 @@ export class ProjectsStage {
 
     this.ring.rotation.y = this.angle + REST_ANGLE * -1
     if (!this.options.reducedMotion) {
-      this.figure.rotation.y = Math.sin(time * 0.4) * 0.05 - speed * 2
-      if (this.dragonTime) this.dragonTime.value = time
-      // O relâmpago treme e pisca sem parar.
-      const flicker = 0.82 + Math.sin(time * 31) * 0.1 + Math.sin(time * 13) * 0.08
-      ;(this.spear.material as THREE.MeshBasicMaterial).opacity = flicker
-      this.spearLight.intensity = 4 * flicker
+      this.figure.rotation.y = Math.sin(time * 0.4) * 0.025 - speed * 0.8
       this.figure.position.y = Math.sin(time * 0.9) * 0.02
       this.dust.rotation.y = time * 0.015
     }
@@ -369,7 +363,11 @@ export class ProjectsStage {
       const light = THREE.MathUtils.lerp(0.14, 1, THREE.MathUtils.smoothstep(facing, -0.3, 0.6))
       panel.material.uniforms.uShift.value = this.shift
       panel.material.uniforms.uLight.value = light
-      panel.glow.uniforms.uLight.value = light
+      // Passando atrás do dragão, a tela some, para não aparecer na frente das asas.
+      const fade = THREE.MathUtils.smoothstep(facing, -0.2, 0.2)
+      panel.material.uniforms.uFade.value = fade
+      panel.glow.uniforms.uLight.value = light * fade
+      panel.mesh.visible = fade > 0.01
     })
   }
 
