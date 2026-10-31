@@ -109,11 +109,11 @@ export default function App() {
         ) : (
           <>
             <div className="pointer-events-none absolute inset-x-0 top-20 z-30 lg:top-24">
-              <div className="mx-auto max-w-360 px-6 lg:px-20">
+              <div className="px-6 lg:px-10">
                 <a
                   href="/#fogueira"
                   onClick={(event) => followLink(event, '/#fogueira')}
-                  className="pointer-events-auto text-sm tracking-[0.04em] opacity-60 transition-opacity hover:opacity-100"
+                  className="pointer-events-auto text-xs font-medium tracking-[0.18em] uppercase opacity-70 transition-opacity hover:opacity-100"
                 >
                   ← Voltar para a fogueira
                 </a>

@@ -128,11 +128,11 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
         />
 
         <div ref={overlayRef}>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-linear-to-b from-night/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-2/5 bg-linear-to-b from-ink/60 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-night to-transparent" />
 
           <div
-            className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-20 ${
+            className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-10 ${
               active !== null ? 'opacity-0' : 'opacity-100'
             }`}
           >
@@ -174,7 +174,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
 
           <p
             aria-hidden="true"
-            className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-20 ${
+            className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-10 ${
               active !== null ? 'opacity-100' : 'opacity-0'
             }`}
           >
@@ -184,7 +184,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
             <span className="mt-2 block text-sm opacity-70">{'{ clique para entrar }'}</span>
           </p>
 
-          <div className="absolute inset-x-6 bottom-6 flex flex-col gap-3 lg:inset-x-20 lg:bottom-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="absolute inset-x-6 bottom-6 flex flex-col gap-3 lg:inset-x-10 lg:bottom-8 lg:flex-row lg:items-end lg:justify-between">
             <nav aria-label="Menu da fogueira">
               <ul className="flex flex-wrap gap-x-6 gap-y-1">
                 {BONFIRE_SPOTS.map((spot, index) => (
