@@ -48,7 +48,7 @@ export function Header({ hidden }: HeaderProps) {
       }`}
     >
       <div
-        className={`absolute inset-x-0 top-0 h-32 bg-linear-to-b from-night to-transparent transition-opacity duration-500 ${
+        className={`absolute inset-x-0 top-0 h-32 bg-linear-to-b from-ink/80 to-transparent transition-opacity duration-500 ${
           shaded ? 'opacity-100' : 'opacity-0'
         }`}
       />
