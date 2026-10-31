@@ -292,7 +292,7 @@ export class ContactStage {
       this.gunY - this.equip * EQUIP_DROP + sway - this.smoothY * 0.03 - this.recoil * 0.02,
       GUN_Z + this.recoil * 0.22,
     )
-    this.gun.rotation.set(-this.smoothY * 0.34 + this.recoil * 0.3, -this.smoothX * 0.52, 0)
+    this.gun.rotation.set(-this.smoothY * 0.2 + this.recoil * 0.3, -this.smoothX * 0.52, 0)
 
     this.camera.lookAt(VIEW.look.x - this.smoothX * 34, this.lookY - this.smoothY * 8, VIEW.look.z)
 

@@ -34,7 +34,7 @@ export const GUN_SKINS: GunSkin[] = [
     label: 'Clássica',
     url: '/models/supershotgun.glb',
     length: 0.62,
-    rotation: [-Math.PI / 4, Math.PI, 0],
+    rotation: [-Math.PI / 4 + 0.22, Math.PI, 0],
   },
   {
     id: 'eternal',
