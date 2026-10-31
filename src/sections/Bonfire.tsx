@@ -14,8 +14,10 @@ interface BonfireProps {
 const ANCHORS = BONFIRE_SPOTS.map((spot) => spot.anchor)
 /** Metade da largura das etiquetas: elas não passam da borda da tela. */
 const LABEL_MARGIN = 56
-/** Distância, em pixels, em que o mouse já conta como perto de uma etiqueta. */
-const NEAR_DISTANCE = 150
+/** Distância, em pixels, em que o mouse já conta como perto de um elemento. */
+const NEAR_DISTANCE = 130
+/** Depois do zoom o elemento sai do lugar: o mouse pode ir mais longe sem perder o destaque. */
+const STAY_DISTANCE = 300
 
 /** Menu do site: a cena da fogueira, com uma etiqueta presa em cada ponto levando a uma seção. */
 export function Bonfire({ reducedMotion }: BonfireProps) {
@@ -34,6 +36,11 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
   }, [])
   const handleLoaded = useCallback(() => setLoaded(true), [])
 
+  const activeRef = useRef<number | null>(null)
+  useEffect(() => {
+    activeRef.current = active
+  }, [active])
+
   const focusSpot = useCallback((index: number | null) => {
     setActive((current) => {
       if (current === null && index !== null) playCrackle()
@@ -41,12 +48,16 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
     })
   }, [])
 
-  // Quando o mouse chega perto de uma etiqueta, o elemento dela ganha destaque.
+  // Quando o mouse chega perto de um elemento, a câmera vai até ele.
   useEffect(() => {
     const onMove = (event: PointerEvent) => {
       const rect = sectionRef.current?.getBoundingClientRect()
       if (!rect || event.pointerType !== 'mouse') return
       if (rect.top > 1 || rect.top < -window.innerHeight * 0.2) return focusSpot(null)
+      if (activeRef.current !== null) {
+        const point = points[activeRef.current]
+        if (point && Math.hypot(point.x - event.clientX, point.y - event.clientY) < STAY_DISTANCE) return
+      }
       let nearest: number | null = null
       let best = NEAR_DISTANCE
       points.forEach((point, index) => {
@@ -85,6 +96,14 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
 
   const go = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault()
+    focusSpot(null)
+    scrollToSection(lenis, id)
+  }
+  // Com o elemento em destaque, um clique na cena leva à seção dele.
+  const enterActive = () => {
+    if (active === null) return
+    const { id } = BONFIRE_SPOTS[active]
+    focusSpot(null)
     scrollToSection(lenis, id)
   }
 
@@ -92,7 +111,10 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
     <section ref={sectionRef} id="fogueira" className="relative z-10 -mt-[40svh] h-[170svh]">
       {/* A borda de cima se desfaz em preto: o Home some atrás dela. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-full h-[30svh] bg-linear-to-t from-ink to-transparent" />
-      <div className="sticky top-0 h-svh min-h-140 overflow-hidden bg-ink">
+      <div
+        onClick={enterActive}
+        className={`sticky top-0 h-svh min-h-140 overflow-hidden bg-ink ${active !== null ? 'cursor-pointer' : ''}`}
+      >
         <Bonfire3D
           hot={active !== null}
           focus={active === null ? null : BONFIRE_SPOTS[active].target}
@@ -111,45 +133,58 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
           <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-linear-to-b from-ink/80 to-transparent" />
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-ink to-transparent" />
 
-          <div className="pointer-events-none absolute top-24 left-6 lg:top-28 lg:left-20">
+          <div
+            className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-20 ${
+              active !== null ? 'opacity-0' : 'opacity-100'
+            }`}
+          >
             <p className="text-xs opacity-60">{'{ menu }'}</p>
             <h2 className="mt-2 font-gothic text-4xl lg:text-6xl">Fogueira</h2>
-            <p className="mt-2 max-w-52 text-sm opacity-60">Aproxime-se. Cada marca leva a uma parte do portfólio.</p>
+            <p className="mt-2 max-w-52 text-sm opacity-60">Aproxime-se de cada elemento e clique para entrar.</p>
           </div>
 
           {/* As etiquetas repetem a lista de baixo, que é a versão acessível do menu. */}
-          <div aria-hidden="true" className={`transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'}`}>
+          <div
+            aria-hidden="true"
+            className={`hidden transition-opacity duration-500 landscape:block ${loaded && active === null ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
+          >
             {points.map((point, index) => {
               const spot = BONFIRE_SPOTS[index]
-              const isActive = active === index
               const left = Math.min(Math.max(point.x, LABEL_MARGIN), width - LABEL_MARGIN)
               return (
                 <a
                   key={spot.id}
                   href={`#${spot.id}`}
                   tabIndex={-1}
-                  onClick={(event) => go(event, spot.id)}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    go(event, spot.id)
+                  }}
                   onMouseEnter={() => focusSpot(index)}
                   style={{ left, top: point.y }}
                   className="absolute flex -translate-x-1/2 -translate-y-full flex-col items-center"
                 >
-                  <span
-                    className={`origin-bottom border bg-ink/80 px-3 py-1.5 text-sm whitespace-nowrap transition-[color,border-color,scale] duration-300 ${
-                      isActive ? 'scale-125 border-ember text-ember' : 'border-paper/30'
-                    }`}
-                  >
+                  <span className="border border-paper/30 bg-ink/80 px-3 py-1.5 text-sm whitespace-nowrap">
                     {spot.label} →
                   </span>
-                  <span
-                    className={`h-5 w-px transition-colors duration-300 ${isActive ? 'bg-ember' : 'bg-paper/40'}`}
-                  />
-                  <span
-                    className={`size-1.5 translate-y-1/2 rounded-full transition-colors duration-300 ${isActive ? 'bg-ember' : 'bg-paper'}`}
-                  />
+                  <span className="h-5 w-px bg-paper/40" />
+                  <span className="size-1.5 translate-y-1/2 rounded-full bg-paper" />
                 </a>
               )
             })}
           </div>
+
+          <p
+            aria-hidden="true"
+            className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-20 ${
+              active !== null ? 'opacity-100' : 'opacity-0'
+            }`}
+          >
+            <span className="block font-gothic text-5xl lg:text-7xl">
+              {active !== null && BONFIRE_SPOTS[active].label}
+            </span>
+            <span className="mt-2 block text-sm opacity-70">{'{ clique para entrar }'}</span>
+          </p>
 
           <div className="absolute inset-x-6 bottom-6 flex flex-col gap-3 lg:inset-x-20 lg:bottom-8 lg:flex-row lg:items-end lg:justify-between">
             <nav aria-label="Menu da fogueira">
@@ -158,7 +193,10 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
                   <li key={spot.id}>
                     <a
                       href={`#${spot.id}`}
-                      onClick={(event) => go(event, spot.id)}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        go(event, spot.id)
+                      }}
                       onMouseEnter={() => focusSpot(index)}
                       onFocus={() => focusSpot(index)}
                       onBlur={() => focusSpot(null)}
@@ -181,6 +219,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
                   href={credit.url}
                   target="_blank"
                   rel="noreferrer"
+                  onClick={(event) => event.stopPropagation()}
                   className="block hover:underline"
                 >
                   {credit.title} · {credit.author} · CC BY 4.0

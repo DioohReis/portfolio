@@ -1,6 +1,7 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
+import { poseSpearKnight } from './poseSpearKnight'
 
 const FOV = 46
 /** Largura da cena que precisa caber na tela, medida como tangente do ângulo horizontal. */
@@ -9,20 +10,31 @@ const FLAME_COUNT = 320
 const EMBER_COUNT = 90
 /** Tempo fixo usado com movimento reduzido: o fogo fica como uma imagem parada. */
 const STILL_TIME = 2.3
-/** Quanto o elemento em destaque cresce quando o mouse chega perto. */
-const FOCUS_SCALE = 1.08
+/** Velocidade com que a câmera vai até o elemento em destaque. */
+const ZOOM_EASE = 0.05
 const ROOM_URL = '/models/room.glb'
 const BONFIRE_URL = '/models/bonfire.glb'
 const KNIGHT_URL = '/models/artorias.glb'
+const SPEAR_KNIGHT_URL = '/models/ornstein.glb'
 /** Maior medida horizontal da fogueira na cena. */
 const BONFIRE_SIZE = 3.2
 /** Encaixa o salão: o vitral fica atrás dos personagens e o centro das cinzas, na origem. */
 const ROOM_POSITION = new THREE.Vector3(0.4, -0.9, -0.1)
 /** Onde cada personagem fica: nome do nó no modelo, altura, posição no chão e giro (radianos). */
 const FIGURES = [
-  { name: 'Artorias', height: 3.6, x: -1.15, z: -1.5, turn: -0.3 },
-  { name: 'Sif', height: 1.9, x: 1.75, z: -1.6, turn: 0 },
+  { name: 'Artorias', height: 3.6, x: -1.9, z: -0.9, turn: 0.15 },
+  { name: 'Sif', height: 2.1, x: -0.2, z: -2.2, turn: -2.6 },
 ]
+/** Em tela em pé os personagens chegam mais perto da fogueira, para todos caberem. */
+const NARROW_SPREAD = 0.68
+const SPEAR_KNIGHT = { height: 3.7, x: 1.9, z: -0.9, turn: 0 }
+/** Aonde a câmera vai quando cada elemento ganha destaque: posição e ponto para onde olha. */
+const VIEWS: Record<string, { position: THREE.Vector3; look: THREE.Vector3 }> = {
+  Artorias: { position: new THREE.Vector3(-1.6, 2.7, 1.6), look: new THREE.Vector3(-1.9, 2.6, -0.9) },
+  Ornstein: { position: new THREE.Vector3(1.6, 2.7, 1.6), look: new THREE.Vector3(1.9, 2.6, -0.9) },
+  Sif: { position: new THREE.Vector3(-0.2, 1.7, 0.8), look: new THREE.Vector3(-1, 1.35, -2.2) },
+  bonfire: { position: new THREE.Vector3(0.2, 1.5, 2.7), look: new THREE.Vector3(0, 0.8, 0) },
+}
 
 export interface StagePoint {
   x: number
@@ -40,7 +52,7 @@ interface BonfireStageOptions {
 
 /**
  * Fogueira do menu (classe, sem React). O fogo e as brasas são feitos em shader, sobre o modelo da
- * fogueira, no meio do salão; Artorias e Sif ficam atrás dela, iluminados por ela.
+ * fogueira, no meio do salão; Artorias e Sif de um lado e Ornstein do outro, iluminados por ela.
  * Só desenha enquanto está visível.
  */
 export class BonfireStage {
@@ -55,9 +67,16 @@ export class BonfireStage {
   private container: HTMLElement
   private reducedMotion: boolean
   private options: BonfireStageOptions
-  /** Elementos que podem ganhar destaque: Artorias, Sif e a fogueira. */
-  private focusables = new Map<string, { group: THREE.Group; scale: number; focus: number }>()
   private focusTarget: string | null = null
+  /** Personagens e a posição x de cada um, para aproximá-los em tela estreita. */
+  private figures: { group: THREE.Group; x: number }[] = []
+  private spread = 1
+  /** 0 com a câmera no lugar de sempre, 1 com ela já perto do elemento em destaque. */
+  private zoom = 0
+  private zoomProgress = 0
+  private zoomPosition = new THREE.Vector3()
+  private zoomLook = new THREE.Vector3()
+  private cameraLook = new THREE.Vector3()
   private frame = 0
   private visible = false
   private disposed = false
@@ -117,7 +136,8 @@ export class BonfireStage {
   setFocus(target: string | null) {
     this.focusTarget = target
     if (this.reducedMotion) {
-      this.updateFocus(1)
+      this.updateZoom(1)
+      this.followScroll()
       this.render()
     }
   }
@@ -144,8 +164,10 @@ export class BonfireStage {
 
   private async load() {
     const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-    const [room, bonfire, knight] = await Promise.all(
-      [ROOM_URL, BONFIRE_URL, KNIGHT_URL].map((url) => loader.loadAsync(url).then((gltf) => gltf.scene)),
+    const [room, bonfire, knight, spearKnight] = await Promise.all(
+      [ROOM_URL, BONFIRE_URL, KNIGHT_URL, SPEAR_KNIGHT_URL].map((url) =>
+        loader.loadAsync(url).then((gltf) => gltf.scene),
+      ),
     )
     if (this.disposed) return
 
@@ -167,10 +189,7 @@ export class BonfireStage {
       -bonfireBox.min.y * bonfireScale,
       -bonfireCenter.z * bonfireScale,
     )
-    const bonfirePivot = new THREE.Group()
-    bonfirePivot.add(bonfire)
-    this.scene.add(bonfirePivot)
-    this.focusables.set('bonfire', { group: bonfirePivot, scale: 1, focus: 0 })
+    this.scene.add(bonfire)
 
     for (const figure of FIGURES) {
       const node = knight.getObjectByName(figure.name)
@@ -183,13 +202,27 @@ export class BonfireStage {
       pivot.position.set(center.x, box.min.y, center.z)
       pivot.updateMatrixWorld()
       pivot.attach(node)
-      const scale = figure.height / size.y
-      pivot.scale.setScalar(scale)
-      this.focusables.set(figure.name, { group: pivot, scale, focus: 0 })
-      pivot.position.set(figure.x, 0, figure.z)
+      pivot.scale.setScalar(figure.height / size.y)
+      pivot.position.set(figure.x * this.spread, 0, figure.z)
+      this.figures.push({ group: pivot, x: figure.x })
       pivot.rotation.y = figure.turn
       this.scene.add(pivot)
     }
+
+    // A medida vem antes da pose: com a lança de pé, a caixa ficaria mais alta que o personagem.
+    const spearBox = measure(spearKnight)
+    const spearHeight = spearBox.max.y - spearBox.min.y
+    const spearCenter = spearBox.getCenter(new THREE.Vector3())
+    poseSpearKnight(spearKnight, spearHeight)
+    const spearPivot = new THREE.Group()
+    spearPivot.position.set(spearCenter.x, spearBox.min.y, 0)
+    spearPivot.updateMatrixWorld()
+    spearPivot.attach(spearKnight)
+    spearPivot.scale.setScalar(SPEAR_KNIGHT.height / spearHeight)
+    spearPivot.position.set(SPEAR_KNIGHT.x * this.spread, 0, SPEAR_KNIGHT.z)
+    this.figures.push({ group: spearPivot, x: SPEAR_KNIGHT.x })
+    spearPivot.rotation.y = SPEAR_KNIGHT.turn
+    this.scene.add(spearPivot)
 
     if (this.reducedMotion) this.update(STILL_TIME)
     this.render()
@@ -201,6 +234,8 @@ export class BonfireStage {
     if (!width || !height) return
     this.renderer.setSize(width, height)
     const aspect = width / height
+    this.spread = aspect < 0.8 ? NARROW_SPREAD : 1
+    for (const figure of this.figures) figure.group.position.x = figure.x * this.spread
     // A câmera fica presa dentro do salão: em tela estreita, abre o ângulo em vez de se afastar.
     const tangent = Math.max(Math.tan(THREE.MathUtils.degToRad(FOV / 2)), FIT_TANGENT / aspect)
     this.camera.fov = THREE.MathUtils.radToDeg(Math.atan(tangent)) * 2
@@ -210,7 +245,7 @@ export class BonfireStage {
     this.placeCamera(0, 0)
     this.options.onProject(
       this.options.anchors.map(([x, y, z]) => {
-        const point = new THREE.Vector3(x, y, z).project(this.camera)
+        const point = new THREE.Vector3(x * this.spread, y, z).project(this.camera)
         return { x: ((point.x + 1) / 2) * width, y: ((1 - point.y) / 2) * height }
       }),
     )
@@ -225,28 +260,44 @@ export class BonfireStage {
   }
 
   /** enter: 1 com a seção ainda embaixo da tela. exit: 1 com a câmera já dentro do fogo. */
-  private placeCamera(enter: number, exit: number) {
+  private placeCamera(enter: number, exit: number, zoom = 0) {
     const push = exit * exit
     this.camera.position.set(0.5 - push * 0.4, 1.9 + enter * 2.6 - push * 0.6, 4.6 - push * 3)
-    this.camera.lookAt(0.2 - push * 0.2, 1.6 + enter * 1.2 - push * 0.6, -1 + push)
+    this.cameraLook.set(0.2 - push * 0.2, 1.6 + enter * 1.2 - push * 0.6, -1 + push)
+    if (zoom > 0) {
+      this.camera.position.lerp(this.zoomPosition, zoom)
+      this.cameraLook.lerp(this.zoomLook, zoom)
+    }
+    this.camera.lookAt(this.cameraLook)
     this.camera.updateMatrixWorld()
   }
 
   /** A câmera acompanha a rolagem: desce para o salão ao chegar e avança para o fogo ao sair. */
   private followScroll() {
-    if (this.reducedMotion) return
+    if (this.reducedMotion) {
+      this.placeCamera(0, 0, this.zoom)
+      return
+    }
     const section = this.container.closest('section')
     if (!section) return
     const { top } = section.getBoundingClientRect()
     const height = window.innerHeight
-    this.placeCamera(THREE.MathUtils.clamp(top / height, 0, 1), THREE.MathUtils.clamp(-top / (height * 0.7), 0, 1))
+    this.placeCamera(
+      THREE.MathUtils.clamp(top / height, 0, 1),
+      THREE.MathUtils.clamp(-top / (height * 0.7), 0, 1),
+      this.zoom,
+    )
   }
 
-  private updateFocus(ease: number) {
-    for (const [name, item] of this.focusables) {
-      item.focus += ((name === this.focusTarget ? 1 : 0) - item.focus) * ease
-      item.group.scale.setScalar(item.scale * (1 + (FOCUS_SCALE - 1) * item.focus))
+  private updateZoom(ease: number) {
+    const view = this.focusTarget ? VIEWS[this.focusTarget] : null
+    // A curva suaviza o começo e o fim do movimento da câmera.
+    this.zoomProgress += ((view ? 1 : 0) - this.zoomProgress) * ease
+    if (view) {
+      this.zoomPosition.lerp(view.position, this.zoomProgress > 0.02 ? ease * 2 : 1)
+      this.zoomLook.lerp(view.look, this.zoomProgress > 0.02 ? ease * 2 : 1)
     }
+    this.zoom = THREE.MathUtils.smoothstep(this.zoomProgress, 0, 1)
   }
 
   private play() {
@@ -259,7 +310,7 @@ export class BonfireStage {
     const tick = () => {
       if (!this.visible) return
       this.heat += (this.heatTarget - this.heat) * 0.05
-      this.updateFocus(0.08)
+      this.updateZoom(ZOOM_EASE)
       this.followScroll()
       this.update(performance.now() / 1000)
       this.render()

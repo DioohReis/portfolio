@@ -23,14 +23,14 @@ export interface BonfireSpot {
   label: string
   /** Ponto da cena 3D onde a etiqueta fica presa (x, y, z). */
   anchor: [number, number, number]
-  /** Elemento da cena que amplia quando o mouse chega perto. */
+  /** Elemento da cena em que a câmera chega perto. */
   target: string
 }
 
 /** Opções do menu da fogueira: cada ponto da cena leva a uma seção. */
 export const BONFIRE_SPOTS: BonfireSpot[] = [
-  { id: 'sobre', label: 'Sobre', anchor: [-0.4, 2.2, -1.5], target: 'Artorias' },
-  { id: 'projetos', label: 'Projetos', anchor: [-2.3, 0.8, -1.5], target: 'Artorias' },
+  { id: 'sobre', label: 'Sobre', anchor: [-1.9, 1.75, -0.9], target: 'Artorias' },
+  { id: 'projetos', label: 'Projetos', anchor: [1.9, 1.75, -0.9], target: 'Ornstein' },
   { id: 'certificados', label: 'Certificados', anchor: [0.8, 0.45, 0.3], target: 'bonfire' },
-  { id: 'contato', label: 'Contato', anchor: [2.2, 1.6, -1.6], target: 'Sif' },
+  { id: 'contato', label: 'Contato', anchor: [0.5, 1.75, -2.2], target: 'Sif' },
 ]
