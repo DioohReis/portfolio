@@ -9,20 +9,16 @@ const MODEL_HEIGHT = 1.9
 const VIEW_HEIGHT = 3
 const PIVOT_Y = 1.75
 const SPIN_SECONDS = 1.3
+const PHOTO_URL = '/images/diogo-gameboy.jpg'
+const PHOTO_WIDTH = 320
 /** Centro e tamanho da área visível do visor, nas medidas do modelo. */
 const SCREEN = { x: 0.05, y: 10.15, z: 1.17, width: 7.2, height: 6.3 }
-
-/* Pêndulo: a mola puxa de volta para o centro, o atrito acalma e o mouse dá os empurrões. */
-const SPRING = 0.012
-const DAMPING = 0.975
-const PUSH = 0.0009
-const MAX_ANGLE = 0.3
 
 const easeInOut = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2)
 
 /**
- * Game Boy pendurado por um cordão na seção Sobre (classe, sem React). Balança quando o mouse passa,
- * acompanha o ponteiro com um leve giro e dá uma volta no clique. Só desenha enquanto está visível.
+ * Game Boy pendurado por um cordão na seção Sobre (classe, sem React). Balança e gira de leve sozinho,
+ * sem seguir o mouse, e dá uma volta no clique. Só desenha enquanto está visível.
  */
 export class GameboyStage {
   private renderer: THREE.WebGLRenderer
@@ -38,11 +34,6 @@ export class GameboyStage {
   private frame = 0
   private visible = false
   private disposed = false
-  private angle = 0
-  private speed = 0
-  private pointerX = 0
-  private lastX = -1
-  private yaw = 0
   private spinStart = -1
   private spinTurns = 0
 
@@ -87,7 +78,6 @@ export class GameboyStage {
       else cancelAnimationFrame(this.frame)
     })
     this.visibilityObserver.observe(container)
-    window.addEventListener('pointermove', this.handlePointer, { passive: true })
 
     this.resize()
     this.load()
@@ -105,7 +95,6 @@ export class GameboyStage {
     cancelAnimationFrame(this.frame)
     this.resizeObserver.disconnect()
     this.visibilityObserver.disconnect()
-    window.removeEventListener('pointermove', this.handlePointer)
     this.scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh)) return
       object.geometry.dispose()
@@ -118,12 +107,6 @@ export class GameboyStage {
     })
     this.renderer.dispose()
     this.renderer.domElement.remove()
-  }
-
-  private handlePointer = (event: PointerEvent) => {
-    this.pointerX = (event.clientX / window.innerWidth) * 2 - 1
-    if (this.lastX >= 0) this.speed += (event.clientX - this.lastX) * PUSH
-    this.lastX = event.clientX
   }
 
   private async load() {
@@ -146,7 +129,7 @@ export class GameboyStage {
     const holder = new THREE.Group()
     model.position.sub(center)
     holder.add(model)
-    holder.add(createScreen(center))
+    holder.add(createScreen(center, () => this.render()))
     holder.scale.setScalar(scale)
     this.device.add(holder)
 
@@ -184,10 +167,6 @@ export class GameboyStage {
 
   private update() {
     const time = performance.now() / 1000
-    this.speed = (this.speed - this.angle * SPRING) * DAMPING
-    this.angle = THREE.MathUtils.clamp(this.angle + this.speed, -MAX_ANGLE, MAX_ANGLE)
-    this.yaw += (this.pointerX * 0.45 - this.yaw) * 0.05
-
     let spinAngle = 0
     if (this.spinStart >= 0) {
       const duration = SPIN_SECONDS + (this.spinTurns - 1) * 0.5
@@ -200,8 +179,9 @@ export class GameboyStage {
       }
     }
 
-    this.swing.rotation.z = this.angle + Math.sin(time * 0.8) * 0.012
-    this.device.rotation.y = this.yaw + spinAngle + Math.sin(time * 0.5) * 0.05
+    // Duas ondas lentas somadas: o balanço não fica repetitivo.
+    this.swing.rotation.z = Math.sin(time * 0.9) * 0.045 + Math.sin(time * 0.37) * 0.02
+    this.device.rotation.y = spinAngle + Math.sin(time * 0.45) * 0.28
   }
 
   private render() {
@@ -209,27 +189,39 @@ export class GameboyStage {
   }
 }
 
-/** Tela do Game Boy com o nome, nos tons de verde do visor original. */
-function createScreen(modelCenter: THREE.Vector3) {
+/** Tela do Game Boy: a foto nos tons de verde do visor original, com os pixels aparentes. */
+function createScreen(modelCenter: THREE.Vector3, onReady: () => void) {
   const canvas = document.createElement('canvas')
-  canvas.width = 480
-  canvas.height = 420
-  const context = canvas.getContext('2d')
+  canvas.width = PHOTO_WIDTH
+  canvas.height = Math.round((PHOTO_WIDTH * SCREEN.height) / SCREEN.width)
+  const context = canvas.getContext('2d', { willReadFrequently: true })
+  const texture = new THREE.CanvasTexture(canvas)
+  texture.colorSpace = THREE.SRGBColorSpace
+  texture.magFilter = THREE.NearestFilter
+
   if (context) {
     context.fillStyle = '#9bbc0f'
     context.fillRect(0, 0, canvas.width, canvas.height)
-    context.fillStyle = '#0f380f'
-    context.textAlign = 'center'
-    context.font = 'bold 52px monospace'
-    context.fillText('DIOGO', 240, 130)
-    context.fillText('A. REIS', 240, 192)
-    context.fillStyle = '#306230'
-    context.font = 'bold 28px monospace'
-    context.fillText('DEV FULLSTACK', 240, 262)
-    context.fillText('> PRESS START', 240, 340)
+    const photo = new Image()
+    photo.onload = () => {
+      context.drawImage(photo, 0, 0, canvas.width, canvas.height)
+      const image = context.getImageData(0, 0, canvas.width, canvas.height)
+      const pixels = image.data
+      for (let i = 0; i < pixels.length; i += 4) {
+        const light = (pixels[i] * 0.3 + pixels[i + 1] * 0.59 + pixels[i + 2] * 0.11) / 255
+        // Clareia as sombras: a foto é escura e o visor tem pouco contraste.
+        const tone = Math.pow(light, 0.7)
+        pixels[i] = 15 + tone * 140
+        pixels[i + 1] = 56 + tone * 132
+        pixels[i + 2] = 15 + tone * 15
+      }
+      context.putImageData(image, 0, 0)
+      texture.needsUpdate = true
+      onReady()
+    }
+    photo.src = PHOTO_URL
   }
-  const texture = new THREE.CanvasTexture(canvas)
-  texture.colorSpace = THREE.SRGBColorSpace
+
   const screen = new THREE.Mesh(
     new THREE.PlaneGeometry(SCREEN.width, SCREEN.height),
     new THREE.MeshBasicMaterial({ map: texture }),

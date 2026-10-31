@@ -18,7 +18,7 @@ export function About({ reducedMotion }: AboutProps) {
         <div className="relative h-[56svh] lg:sticky lg:top-0 lg:-mt-24 lg:h-svh">
           <Gameboy3D reducedMotion={reducedMotion} className="absolute inset-0" />
           <p className="pointer-events-none absolute bottom-2 left-1/2 -translate-x-1/2 text-sm whitespace-nowrap opacity-60 lg:bottom-8">
-            {'{ passe o mouse · clique para girar }'}
+            {'{ clique para girar }'}
           </p>
         </div>
 
