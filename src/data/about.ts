@@ -10,6 +10,64 @@ export const ABOUT = {
     'Trabalho com React, TypeScript e Tailwind CSS, com base em Java e Python. Já passei por APIs REST, bancos de dados, integração com IA e 3D na web, sempre de olho em acessibilidade e qualidade.',
 }
 
+/** Texto do rótulo do cartucho 3D. */
+export const CARTRIDGE_LABEL = { title: ABOUT.noteTitle, text: ABOUT.note }
+
+/** Pôsteres do quarto: arte original, com os meus próprios projetos. */
+export const POSTERS = [
+  {
+    title: 'CAMPO MINADO DOS LOBOS',
+    icon: '🐺',
+    caption: 'Python',
+    background: 'linear-gradient(160deg, #7a1f3d, #1d1140)',
+  },
+  { title: 'LUMEN AI', icon: '🌱', caption: '15 missões', background: 'linear-gradient(160deg, #0f6b5a, #10264d)' },
+  { title: 'ORBITAGRO', icon: '🛰️', caption: 'Sentinel-2', background: 'linear-gradient(160deg, #c2701e, #3a1650)' },
+]
+
+/** Colagem da parede, atrás do Game Boy: também só arte original. */
+export const WALL_POSTERS = [
+  {
+    title: 'HELLO WORLD',
+    icon: '👾',
+    caption: 'START',
+    background: 'linear-gradient(160deg, #3b2a9e, #0d1038)',
+    left: '3%',
+    top: '16%',
+    turn: -4,
+  },
+  {
+    title: 'TRIADOR AIIA',
+    icon: '📄',
+    caption: 'Gemini',
+    background: 'linear-gradient(160deg, #a02a6a, #20104a)',
+    left: '17%',
+    top: '11%',
+    turn: 3,
+  },
+  {
+    title: 'AGENDADOR',
+    icon: '📅',
+    caption: 'Spring Boot',
+    background: 'linear-gradient(160deg, #1f7a8c, #122045)',
+    left: '4%',
+    top: '50%',
+    turn: 2,
+  },
+  {
+    title: 'PORTAIS ACESSÍVEIS',
+    icon: '♿',
+    caption: 'Tech Lead',
+    background: 'linear-gradient(160deg, #6d8b1f, #16301c)',
+    left: '30%',
+    top: '44%',
+    turn: -3,
+  },
+]
+
+/** Fitas e caixas da prateleira. */
+export const SHELF_ITEMS = ['#b0234f', '#2d6cdf', '#d8a31f', '#2e8b57', '#6a3fb5', '#d6cfbd', '#b0234f', '#1f7a8c']
+
 /** As três qualidades, como atributos de personagem. */
 export const QUALITIES = [
   { name: 'Curiosidade', description: 'Quero entender como as coisas funcionam por dentro.' },
@@ -34,6 +92,11 @@ export const SOCIAL_LINKS = [
 
 /** Créditos dos modelos 3D da fogueira (licença CC BY 4.0, exige citar autor e fonte). */
 export const MODEL_CREDITS = [
+  {
+    title: 'Pokemon Cartridge Gameboy',
+    author: 'thegraphicsgeek',
+    url: 'https://sketchfab.com/3d-models/pokemon-cartridge-gameboy-7d79300f91a441d0ba520fdbd268aa5f',
+  },
   {
     title: 'Gameboy',
     author: 'grimmorf',
