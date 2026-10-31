@@ -64,5 +64,4 @@ export const CERTIFICATES: Certificate[] = [
     credentialUrl: 'https://www.sp.senai.br/consulta-certificado?qrcode=10125148357/15151014',
     image: '/images/certificados/fortinet.webp',
   },
-  { title: 'Desenvolvimento de Aplicativos', issuer: 'Estação Hack · Facebook' },
 ]
