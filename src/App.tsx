@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactElement } from 'react'
+import { ChannelChange } from './components/intro/ChannelChange'
 import { CrtIntro } from './components/intro/CrtIntro'
 import { Header } from './components/layout/Header'
 import { LenisContext, scrollToSection, useCreateLenis } from './hooks/useLenis'
@@ -37,7 +38,7 @@ const SNAP_SECTIONS = ['home', 'fogueira']
  * 1. TV antiga carregando (sempre que a página abre ou recarrega).
  * 2. Clique → a TV ocupa a tela → as partículas começam como chiado (started = true).
  * 3. A TV some (introDone = true) e as partículas se montam em "Start Hello World".
- * Quem abre direto outra página não passa pela TV.
+ * Quem abre direto ou navega para outra página vê a troca de canal (ChannelChange).
  */
 export default function App() {
   const reducedMotion = useReducedMotion()
@@ -99,6 +100,7 @@ export default function App() {
           onFinished={handleIntroFinished}
         />
       )}
+      <ChannelChange path={path} hash={hash} reducedMotion={reducedMotion} />
       <Header hidden={!started} />
       <main key={path} className="animate-page-in">
         {isHome ? (

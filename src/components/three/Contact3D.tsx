@@ -2,6 +2,7 @@ import { useEffect, useImperativeHandle, useRef, useState } from 'react'
 import type { Ref, RefObject } from 'react'
 import type { GunSkin } from '../../data/contact'
 import type { ContactStage } from '../../lib/contact/ContactStage'
+import { announceSceneReady } from '../../lib/sceneReady'
 
 export interface Contact3DHandle {
   /** Devolve se o tiro matou um demônio. */
@@ -32,7 +33,10 @@ export function Contact3D({ skin, reducedMotion, gunLayerRef, ref, className = '
     let cancelled = false
     import('../../lib/contact/ContactStage').then(({ ContactStage }) => {
       if (cancelled) return
-      stageRef.current = new ContactStage(container, gunLayer, skinRef.current, reducedMotion, () => setLoaded(true))
+      stageRef.current = new ContactStage(container, gunLayer, skinRef.current, reducedMotion, () => {
+        setLoaded(true)
+        announceSceneReady()
+      })
     })
     return () => {
       cancelled = true

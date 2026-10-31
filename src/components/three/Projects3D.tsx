@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ProjectsStage } from '../../lib/projects/ProjectsStage'
+import { announceSceneReady } from '../../lib/sceneReady'
 
 interface Projects3DProps {
   covers: string[]
@@ -32,7 +33,10 @@ export function Projects3D({ covers, active, reducedMotion, onActive, onOpen, cl
         reducedMotion,
         onActive: (index) => callbacks.current.onActive(index),
         onOpen: (index) => callbacks.current.onOpen(index),
-        onLoaded: () => setLoaded(true),
+        onLoaded: () => {
+          setLoaded(true)
+          announceSceneReady()
+        },
       })
     })
     return () => {
