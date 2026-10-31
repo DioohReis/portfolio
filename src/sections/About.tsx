@@ -133,15 +133,31 @@ export function About({ reducedMotion }: AboutProps) {
         </div>
       </div>
 
-      <div className="mx-auto max-w-360 px-6 pt-20 pb-24 lg:px-20">
-        <p className="text-sm tracking-[0.14em] uppercase opacity-55">Salvar progresso</p>
-        <h3 className="mt-4 text-[clamp(40px,5.5vw,84px)] leading-none font-semibold tracking-[-0.04em]">Jornada</h3>
-        <p className="mt-10 border border-dashed border-paper/25 px-6 py-14 text-center text-2xl tracking-[0.04em] text-paper/70">
-          Coming soon
-        </p>
+      <div className="mt-20">
+        <Skills reducedMotion={reducedMotion} />
       </div>
 
-      <Skills reducedMotion={reducedMotion} />
+      {/* Jornada: por enquanto, um save vazio esperando a história. */}
+      <div className="relative overflow-hidden px-6 py-28 text-center lg:py-36">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-2/3 bg-[radial-gradient(ellipse_at_top,rgb(240_146_74/0.14),transparent_70%)]"
+        />
+        <p className="relative text-sm tracking-[0.24em] uppercase opacity-55">Jornada</p>
+        <h3 className="relative mt-5 text-[clamp(52px,10vw,148px)] leading-none font-semibold tracking-[-0.05em]">
+          Coming <span className="text-ember">soon</span>
+        </h3>
+        <div aria-hidden="true" className="relative mx-auto mt-10 flex max-w-md items-center gap-2">
+          <span className="size-2.5 rounded-full bg-ember shadow-[0_0_14px_var(--color-ember)] motion-safe:animate-blink" />
+          <span className="h-px flex-1 border-t border-dashed border-paper/30" />
+          <span className="size-2 rounded-full border border-paper/40" />
+          <span className="h-px flex-1 border-t border-dashed border-paper/30" />
+          <span className="size-2 rounded-full border border-paper/40" />
+          <span className="h-px flex-1 border-t border-dashed border-paper/30" />
+          <span className="size-2 rounded-full border border-paper/40" />
+        </div>
+        <p className="relative mt-6 font-terminal text-2xl text-[#9bdc6a]">Salvando progresso...</p>
+      </div>
     </section>
   )
 }
