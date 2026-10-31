@@ -18,7 +18,7 @@ const PAGES: Record<string, (props: { reducedMotion: boolean }) => ReactElement>
   '/sobre': ({ reducedMotion }) => <About reducedMotion={reducedMotion} />,
   '/projetos': ({ reducedMotion }) => <Projects reducedMotion={reducedMotion} />,
   '/certificados': () => <Certificates />,
-  '/contato': () => <Contact />,
+  '/contato': ({ reducedMotion }) => <Contact reducedMotion={reducedMotion} />,
 }
 
 const DEFAULT_TITLE = 'Diogo A Reis — Portfólio'
