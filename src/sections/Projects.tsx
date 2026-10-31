@@ -48,6 +48,31 @@ export function Projects({ reducedMotion }: ProjectsProps) {
         {PROJECTS_CREDIT.title} · {PROJECTS_CREDIT.author} · CC BY 4.0
       </a>
 
+      {/* Seletor: mostra quantos projetos existem e leva direto a cada um. */}
+      <nav
+        aria-label="Lista de projetos"
+        className="absolute inset-x-6 top-52 lg:top-auto lg:right-auto lg:bottom-10 lg:left-1/2 lg:w-[34rem] lg:-translate-x-1/2"
+      >
+        <ul className="flex gap-2">
+          {PROJECTS.map((item, index) => (
+            <li key={item.slug} className="min-w-0 flex-1">
+              <button
+                type="button"
+                aria-current={index === active ? 'true' : undefined}
+                aria-label={`Ver projeto ${item.title}`}
+                onClick={() => setActive(index)}
+                className={`w-full cursor-pointer border-t-2 pt-2 text-left text-xs transition-[border-color,opacity] duration-300 hover:opacity-100 ${
+                  index === active ? 'border-paper opacity-100' : 'border-paper/30 opacity-60'
+                }`}
+              >
+                <span className="font-medium">{String(index + 1).padStart(2, '0')}</span>
+                <span className="ml-2 hidden lg:inline">{item.title}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
       {/* Informações do projeto da frente. A troca reinicia o fade pela chave. */}
       <div
         key={project.slug}
