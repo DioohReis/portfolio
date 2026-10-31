@@ -7,10 +7,7 @@ interface AboutProps {
 
 export function About({ reducedMotion }: AboutProps) {
   return (
-    <section id="sobre" className="relative z-20 -mt-[40svh] bg-night">
-      {/* A borda de cima se desfaz em preto: o fogo da seção anterior some atrás dela. */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-full h-[30svh] bg-linear-to-t from-night to-transparent" />
-
+    <section id="sobre" className="bg-night">
       <div className="mx-auto grid max-w-360 gap-10 px-6 pt-24 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-20">
         {/* O Game Boy fica parado na tela enquanto os textos correm ao lado. */}
         <div className="relative h-[56svh] lg:sticky lg:top-0 lg:-mt-24 lg:h-svh">

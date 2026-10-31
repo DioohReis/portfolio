@@ -1,16 +1,18 @@
 export interface NavItem {
   id: string
   label: string
+  /** Home e Fogueira ficam na página inicial; as outras têm página própria. */
+  href: string
 }
 
-/** Ordem das seções na página e no cabeçalho. */
+/** Itens do cabeçalho. */
 export const NAV_ITEMS: NavItem[] = [
-  { id: 'home', label: 'Home' },
-  { id: 'fogueira', label: 'Fogueira' },
-  { id: 'sobre', label: 'Sobre' },
-  { id: 'projetos', label: 'Projetos' },
-  { id: 'certificados', label: 'Certificados' },
-  { id: 'contato', label: 'Contato' },
+  { id: 'home', label: 'Home', href: '/' },
+  { id: 'fogueira', label: 'Fogueira', href: '/#fogueira' },
+  { id: 'sobre', label: 'Sobre', href: '/sobre' },
+  { id: 'projetos', label: 'Projetos', href: '/projetos' },
+  { id: 'certificados', label: 'Certificados', href: '/certificados' },
+  { id: 'contato', label: 'Contato', href: '/contato' },
 ]
 
 /** Texto das partículas no Home. */

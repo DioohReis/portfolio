@@ -3,7 +3,7 @@ import type { MouseEvent } from 'react'
 import { Bonfire3D } from '../components/three/Bonfire3D'
 import { MODEL_CREDITS } from '../data/about'
 import { BONFIRE_SPOTS } from '../data/navigation'
-import { scrollToSection, useLenis } from '../hooks/useLenis'
+import { followLink, navigate } from '../hooks/useRoute'
 import { playCrackle } from '../lib/crackle'
 import type { StagePoint } from '../lib/bonfire/BonfireStage'
 
@@ -21,7 +21,6 @@ const STAY_DISTANCE = 300
 
 /** Menu do site: a cena da fogueira, com uma etiqueta presa em cada ponto levando a uma seção. */
 export function Bonfire({ reducedMotion }: BonfireProps) {
-  const lenis = useLenis()
   const [active, setActive] = useState<number | null>(null)
   const sectionRef = useRef<HTMLElement>(null)
   const overlayRef = useRef<HTMLDivElement>(null)
@@ -95,20 +94,19 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
   }, [])
 
   const go = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
-    event.preventDefault()
     focusSpot(null)
-    scrollToSection(lenis, id)
+    followLink(event, `/${id}`)
   }
   // Com o elemento em destaque, um clique na cena leva à seção dele.
   const enterActive = () => {
     if (active === null) return
     const { id } = BONFIRE_SPOTS[active]
     focusSpot(null)
-    scrollToSection(lenis, id)
+    navigate(`/${id}`)
   }
 
   return (
-    <section ref={sectionRef} id="fogueira" className="relative z-10 -mt-[40svh] h-[170svh]">
+    <section ref={sectionRef} id="fogueira" className="relative z-10 -mt-[40svh] h-svh min-h-140">
       {/* A borda de cima se desfaz em preto: o Home some atrás dela. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-full h-[30svh] bg-linear-to-t from-ink to-transparent" />
       <div
@@ -154,7 +152,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
               return (
                 <a
                   key={spot.id}
-                  href={`#${spot.id}`}
+                  href={`/${spot.id}`}
                   tabIndex={-1}
                   onClick={(event) => {
                     event.stopPropagation()
@@ -192,7 +190,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
                 {BONFIRE_SPOTS.map((spot, index) => (
                   <li key={spot.id}>
                     <a
-                      href={`#${spot.id}`}
+                      href={`/${spot.id}`}
                       onClick={(event) => {
                         event.stopPropagation()
                         go(event, spot.id)
