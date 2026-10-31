@@ -202,8 +202,8 @@ export class ProjectsStage {
     if (this.disposed) return
 
     // De frente para a câmera, com a cabeça no meio da tela e as asas abertas até as bordas.
-    dragon.scale.setScalar(11.5)
-    dragon.position.set(0, -3.25, -4.6)
+    dragon.scale.setScalar(15.5)
+    dragon.position.set(0, -4.75, -5.2)
     paintDragon(dragon)
     this.figure.add(dragon)
 
