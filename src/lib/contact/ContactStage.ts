@@ -1,13 +1,21 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
+import type { GunSkin } from '../../data/contact'
+import { DemonHorde } from './DemonHorde'
 
 const MAP_URL = '/models/doom-e1m1.glb'
-const GUN_URL = '/models/supershotgun.glb'
+const DEMON_URL = '/models/cacodemon.glb'
 const FOV = 62
 /** Ponto do mapa de onde se olha e para onde. */
 const VIEW = { position: new THREE.Vector3(-1056, 41, -3616), look: new THREE.Vector3(-1056, 6, -3300) }
-const GUN_Y = -0.3
+/* Arma um pouco abaixo dos olhos e afastada: a coronha fica à frente e os canos somem na perspectiva. */
+const GUN_Y = -0.13
+const LOOK_Y = 50
+const LOOK_Y_NARROW = 85
+const GUN_Z = 0.25
+/** Quanto a arma nova sobe para a mão ao trocar de skin. */
+const EQUIP_DROP = 0.5
 const RECOIL_DECAY = 0.86
 const FLASH_DECAY = 0.72
 /** Mapa mais escuro que o original, para os contatos se destacarem. */
@@ -44,8 +52,24 @@ export class ContactStage {
   private recoil = 0
   private flashLevel = 0
   private gunY = GUN_Y
+  /** Altura para onde a câmera olha: deixa o chão livre abaixo das placas. */
+  private lookY = LOOK_Y
+  /** Skins já baixadas, guardadas para a troca ser imediata na segunda vez. */
+  private skins = new Map<string, THREE.Group>()
+  private wantedSkin: string
+  private equip = 0
+  private horde: DemonHorde | null = null
+  private lastTime = 0
+  private pointer = new THREE.Vector2()
 
-  constructor(container: HTMLElement, gunContainer: HTMLElement, reducedMotion: boolean, onLoaded: () => void) {
+  constructor(
+    container: HTMLElement,
+    gunContainer: HTMLElement,
+    skin: GunSkin,
+    reducedMotion: boolean,
+    onLoaded: () => void,
+  ) {
+    this.wantedSkin = skin.id
     this.container = container
     this.reducedMotion = reducedMotion
     this.onLoaded = onLoaded
@@ -93,12 +117,26 @@ export class ContactStage {
     this.visibilityObserver.observe(container)
 
     this.resize()
-    this.load()
+    this.load(skin)
   }
 
-  /** Dispara na direção de um ponto da tela, em pixels. */
+  /** Troca a arma; devolve quando ela já está na mão. */
+  async setSkin(skin: GunSkin) {
+    this.wantedSkin = skin.id
+    const holder = this.skins.get(skin.id) ?? (await this.loadSkin(skin))
+    if (this.disposed || this.wantedSkin !== skin.id) return
+    for (const other of this.skins.values()) other.visible = other === holder
+    this.equip = this.reducedMotion ? 0 : 1
+    this.update()
+    this.render()
+  }
+
+  /** Dispara na direção de um ponto da tela, em pixels; devolve se matou um demônio. */
   fire(x: number, y: number) {
     this.setAim(x, y)
+    const rect = this.container.getBoundingClientRect()
+    this.pointer.set(((x - rect.left) / rect.width) * 2 - 1, -((y - rect.top) / rect.height) * 2 + 1)
+    const killed = this.horde?.shoot(this.pointer) ?? false
     if (this.reducedMotion) {
       this.smoothX = this.aimX
       this.smoothY = this.aimY
@@ -108,6 +146,7 @@ export class ContactStage {
     }
     this.update()
     this.render()
+    return killed
   }
 
   dispose() {
@@ -144,9 +183,14 @@ export class ContactStage {
     this.aimY = (y / window.innerHeight) * 2 - 1
   }
 
-  private async load() {
-    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-    const [{ scene: map }, { scene: gun }] = await Promise.all([loader.loadAsync(MAP_URL), loader.loadAsync(GUN_URL)])
+  private loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+
+  private async load(skin: GunSkin) {
+    const [{ scene: map }, holder, { scene: demon }] = await Promise.all([
+      this.loader.loadAsync(MAP_URL),
+      this.loadSkin(skin),
+      this.loader.loadAsync(DEMON_URL),
+    ])
     if (this.disposed) return
 
     // Texturas sem suavização: os pixels do jogo original ficam à mostra.
@@ -162,19 +206,39 @@ export class ContactStage {
     })
     this.scene.add(map)
 
-    const box = new THREE.Box3().setFromObject(gun)
+    holder.visible = true
+    this.scene.add(new THREE.HemisphereLight(0xffffff, 0x554444, 2.2))
+    this.horde = new DemonHorde(this.scene, demon, this.camera, VIEW.position, this.reducedMotion)
+
+    this.update()
+    this.render()
+    this.onLoaded()
+  }
+
+  private async loadSkin(skin: GunSkin) {
+    const { scene: gun } = await this.loader.loadAsync(skin.url)
+    gun.updateWorldMatrix(true, true)
+    gun.traverse((object) => {
+      // Cartuchos soltos do modelo não fazem parte da arma na mão.
+      if (object instanceof THREE.Mesh && /shell/i.test((object.material as THREE.Material).name))
+        object.visible = false
+      if (object instanceof THREE.SkinnedMesh) {
+        object.skeleton.update()
+        object.frustumCulled = false
+      }
+    })
+    const box = new THREE.Box3().setFromObject(gun, true)
     const size = box.getSize(new THREE.Vector3())
     const center = box.getCenter(new THREE.Vector3())
     gun.position.sub(center)
     const holder = new THREE.Group()
     holder.add(gun)
-    holder.scale.setScalar(1 / Math.max(size.x, size.y, size.z))
-    holder.rotation.set(GUN_ROTATION.x, GUN_ROTATION.y, GUN_ROTATION.z)
+    holder.scale.setScalar(skin.length / Math.max(size.x, size.y, size.z))
+    holder.rotation.set(skin.rotation[0], skin.rotation[1], skin.rotation[2], 'YXZ')
+    holder.visible = false
     this.gun.add(holder)
-
-    this.update()
-    this.render()
-    this.onLoaded()
+    this.skins.set(skin.id, holder)
+    return holder
   }
 
   private resize() {
@@ -189,7 +253,8 @@ export class ContactStage {
     this.gunCamera.updateProjectionMatrix()
     // Em tela estreita a arma recua, para continuar inteira.
     this.gunCamera.position.set(0, 0, aspect < 0.8 ? 2.1 : 1.35)
-    this.gunY = aspect < 0.8 ? GUN_Y - 0.2 : GUN_Y
+    this.lookY = aspect < 0.8 ? LOOK_Y_NARROW : LOOK_Y
+    this.gunY = aspect < 0.8 ? GUN_Y - 0.12 : GUN_Y
     this.render()
   }
 
@@ -211,21 +276,25 @@ export class ContactStage {
 
   private update() {
     const time = performance.now() / 1000
+    const delta = this.reducedMotion ? 0 : Math.min(time - this.lastTime, 0.1)
+    this.lastTime = time
+    this.horde?.update(delta, time)
     this.smoothX += (this.aimX - this.smoothX) * 0.14
     this.smoothY += (this.aimY - this.smoothY) * 0.14
     this.recoil *= RECOIL_DECAY
+    this.equip *= 0.86
     this.flashLevel *= FLASH_DECAY
 
     // O balanço de quem está parado, respirando.
     const sway = this.reducedMotion ? 0 : Math.sin(time * 1.6) * 0.006
     this.gun.position.set(
       this.smoothX * 0.1,
-      this.gunY + sway - this.smoothY * 0.03 - this.recoil * 0.02,
-      this.recoil * 0.22,
+      this.gunY - this.equip * EQUIP_DROP + sway - this.smoothY * 0.03 - this.recoil * 0.02,
+      GUN_Z + this.recoil * 0.22,
     )
     this.gun.rotation.set(-this.smoothY * 0.34 + this.recoil * 0.3, -this.smoothX * 0.52, 0)
 
-    this.camera.lookAt(VIEW.look.x - this.smoothX * 34, VIEW.look.y - this.smoothY * 18, VIEW.look.z)
+    this.camera.lookAt(VIEW.look.x - this.smoothX * 34, this.lookY - this.smoothY * 8, VIEW.look.z)
 
     // A ponta dos canos, com o giro da arma, é de onde sai o clarão.
     const muzzle = new THREE.Vector3(0, 0.03, -0.72).applyEuler(this.gun.rotation).add(this.gun.position)
@@ -244,8 +313,6 @@ export class ContactStage {
     this.gunRenderer.render(this.gunScene, this.gunCamera)
   }
 }
-
-const GUN_ROTATION = new THREE.Euler(-Math.PI / 4, 0, 0)
 
 /** Clarão do tiro, desenhado em canvas: núcleo branco e pontas alaranjadas. */
 function createFlashTexture() {

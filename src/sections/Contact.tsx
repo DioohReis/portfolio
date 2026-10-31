@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent, PointerEvent } from 'react'
 import { Contact3D } from '../components/three/Contact3D'
 import type { Contact3DHandle } from '../components/three/Contact3D'
-import { CONTACT_CREDITS, CONTACT_LINKS } from '../data/contact'
+import { CONTACT_CREDITS, CONTACT_LINKS, GUN_SKINS } from '../data/contact'
 import { SITE_OWNER } from '../data/navigation'
 import { playShotgun } from '../lib/shotgunSound'
 
@@ -34,6 +34,8 @@ export function Contact({ reducedMotion }: ContactProps) {
   const [hit, setHit] = useState<string | null>(null)
   const [aiming, setAiming] = useState(false)
   const [shaking, setShaking] = useState(false)
+  const [skin, setSkin] = useState(GUN_SKINS[0])
+  const [kills, setKills] = useState(0)
 
   useEffect(() => {
     const pending = timers.current
@@ -47,7 +49,10 @@ export function Contact({ reducedMotion }: ContactProps) {
   /** O tiro em si: som, coice da arma, tremor e um buraco no ponto da tela. */
   const shoot = (x: number, y: number) => {
     playShotgun()
-    stageRef.current?.fire(x, y)
+    if (stageRef.current?.fire(x, y)) {
+      setKills((current) => current + 1)
+      return
+    }
     const rect = sectionRef.current?.getBoundingClientRect()
     const id = nextHole.current++
     const hole = { id, x: x - (rect?.left ?? 0), y: y - (rect?.top ?? 0), turn: (id * 137) % 360 }
@@ -96,6 +101,7 @@ export function Contact({ reducedMotion }: ContactProps) {
     >
       <div className={`absolute inset-0 ${shaking ? 'animate-shot-shake' : ''}`}>
         <Contact3D
+          skin={skin}
           ref={stageRef}
           gunLayerRef={gunLayerRef}
           reducedMotion={reducedMotion}
@@ -109,7 +115,9 @@ export function Contact({ reducedMotion }: ContactProps) {
         <h1 className="text-[clamp(36px,4.5vw,68px)] leading-none font-semibold tracking-[-0.04em]">
           Vamos conversar?
         </h1>
-        <p className="mt-2 font-pixel text-[10px] leading-relaxed text-[#ff5a3c]">{'{ MIRE EM UM CONTATO E ATIRE }'}</p>
+        <p className="mt-2 font-pixel text-[10px] leading-relaxed text-[#ff5a3c]">
+          {'{ ATIRE EM UM CONTATO OU CACE OS DEMÔNIOS }'}
+        </p>
       </div>
 
       <ul className="absolute inset-x-6 top-64 grid grid-cols-2 gap-3 lg:inset-x-[12%] lg:top-[38%] lg:grid-cols-4 lg:gap-6">
@@ -138,6 +146,39 @@ export function Contact({ reducedMotion }: ContactProps) {
           </li>
         ))}
       </ul>
+
+      <p
+        aria-live="polite"
+        className="pointer-events-none absolute top-58 left-6 font-pixel text-xs text-[#ffd23c] drop-shadow-[2px_2px_0_#000] lg:left-10"
+      >
+        DEMÔNIOS: {String(kills).padStart(3, '0')}
+      </p>
+
+      {/* Troca de arma: por cima de tudo, e o clique aqui não dispara. */}
+      <div
+        onClick={(event) => event.stopPropagation()}
+        className="absolute right-6 bottom-20 z-20 cursor-auto lg:right-10 lg:bottom-12"
+      >
+        <p className="mb-2 text-right font-pixel text-[9px] text-paper/70">SKIN DA ARMA</p>
+        <ul className="flex flex-wrap justify-end gap-1.5">
+          {GUN_SKINS.map((item) => (
+            <li key={item.id}>
+              <button
+                type="button"
+                aria-pressed={item.id === skin.id}
+                onClick={() => setSkin(item)}
+                className={`cursor-pointer border-2 px-2.5 py-1.5 text-xs font-semibold transition-colors outline-none focus-visible:border-paper ${
+                  item.id === skin.id
+                    ? 'border-[#ff4a2c] bg-[#ff4a2c] text-black'
+                    : 'border-paper/35 bg-black/70 text-paper hover:border-paper'
+                }`}
+              >
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {/* A arma fica à frente das placas, sem bloquear o clique nelas. */}
       <div ref={gunLayerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-10" />
@@ -183,20 +224,22 @@ export function Contact({ reducedMotion }: ContactProps) {
         <span>
           © {YEAR} {SITE_OWNER}
         </span>
-        <span className="flex flex-wrap gap-x-3">
-          {CONTACT_CREDITS.map((credit) => (
-            <a
-              key={credit.url}
-              href={credit.url}
-              target="_blank"
-              rel="noreferrer"
-              onClick={(event) => event.stopPropagation()}
-              className="hover:underline"
-            >
-              {credit.title} · {credit.author} · CC BY 4.0
-            </a>
-          ))}
-        </span>
+        <details onClick={(event) => event.stopPropagation()} className="relative z-20 cursor-auto">
+          <summary className="cursor-pointer">Créditos dos modelos</summary>
+          <p className="mt-1 max-w-3xl">
+            {CONTACT_CREDITS.map((credit) => (
+              <a
+                key={credit.url}
+                href={credit.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mr-3 inline-block hover:underline"
+              >
+                {credit.title} · {credit.author} · {'license' in credit ? credit.license : 'CC BY 4.0'}
+              </a>
+            ))}
+          </p>
+        </details>
       </footer>
     </section>
   )
