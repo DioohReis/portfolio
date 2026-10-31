@@ -14,18 +14,18 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
             className="h-full w-full object-cover grayscale transition duration-700 ease-out-soft group-hover:scale-[1.03] group-hover:grayscale-0"
           />
         ) : (
-          <div className="flex h-full items-center justify-center px-8 text-center font-gothic text-[clamp(36px,5vw,64px)] leading-[1.05] opacity-15">
+          <div className="flex h-full items-center justify-center px-8 text-center text-[clamp(36px,5vw,64px)] leading-[1.05] opacity-15">
             {title}
           </div>
         )}
         <Marquee
           items={stack}
-          className="absolute inset-x-0 bottom-0 border-t border-line bg-ink py-2 font-mono text-[13px] tracking-wide"
+          className="absolute inset-x-0 bottom-0 border-t border-line bg-ink py-2 text-[13px] tracking-wide"
         />
       </div>
 
       <div className="flex flex-col gap-3 p-6">
-        <div className="flex items-center justify-between font-mono text-xs uppercase opacity-45">
+        <div className="flex items-center justify-between text-xs uppercase opacity-45">
           <span>{String(index + 1).padStart(3, '0')}</span>
           <span>
             {category} · {year}

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 import { Bonfire3D } from '../components/three/Bonfire3D'
 import { MODEL_CREDITS } from '../data/about'
@@ -14,11 +14,16 @@ interface BonfireProps {
 const ANCHORS = BONFIRE_SPOTS.map((spot) => spot.anchor)
 /** Metade da largura das etiquetas: elas não passam da borda da tela. */
 const LABEL_MARGIN = 56
+/** Distância, em pixels, em que o mouse já conta como perto de uma etiqueta. */
+const NEAR_DISTANCE = 150
 
 /** Menu do site: a cena da fogueira, com uma etiqueta presa em cada ponto levando a uma seção. */
 export function Bonfire({ reducedMotion }: BonfireProps) {
   const lenis = useLenis()
-  const [hot, setHot] = useState(false)
+  const [active, setActive] = useState<number | null>(null)
+  const sectionRef = useRef<HTMLElement>(null)
+  const overlayRef = useRef<HTMLDivElement>(null)
+  const veilRef = useRef<HTMLDivElement>(null)
   const [loaded, setLoaded] = useState(false)
   const [points, setPoints] = useState<StagePoint[]>([])
   const [width, setWidth] = useState(0)
@@ -29,87 +34,161 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
   }, [])
   const handleLoaded = useCallback(() => setLoaded(true), [])
 
-  const heat = () => {
-    if (!hot) playCrackle()
-    setHot(true)
-  }
-  const cool = () => setHot(false)
+  const focusSpot = useCallback((index: number | null) => {
+    setActive((current) => {
+      if (current === null && index !== null) playCrackle()
+      return index
+    })
+  }, [])
+
+  // Quando o mouse chega perto de uma etiqueta, o elemento dela ganha destaque.
+  useEffect(() => {
+    const onMove = (event: PointerEvent) => {
+      const rect = sectionRef.current?.getBoundingClientRect()
+      if (!rect || event.pointerType !== 'mouse') return
+      if (rect.top > 1 || rect.top < -window.innerHeight * 0.2) return focusSpot(null)
+      let nearest: number | null = null
+      let best = NEAR_DISTANCE
+      points.forEach((point, index) => {
+        const distance = Math.hypot(point.x - event.clientX, point.y - event.clientY)
+        if (distance < best) {
+          best = distance
+          nearest = index
+        }
+      })
+      focusSpot(nearest)
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => window.removeEventListener('pointermove', onMove)
+  }, [points, focusSpot])
+
+  // Título e etiquetas só aparecem com a cena parada; somem enquanto a câmera se move.
+  useEffect(() => {
+    const onScroll = () => {
+      const rect = sectionRef.current?.getBoundingClientRect()
+      const overlay = overlayRef.current
+      if (!rect || !overlay) return
+      const height = window.innerHeight
+      const visible = Math.max(
+        0,
+        1 - Math.max(rect.top / (height * 0.3), (-rect.top - height * 0.05) / (height * 0.25), 0),
+      )
+      overlay.style.opacity = String(visible)
+      overlay.style.visibility = visible === 0 ? 'hidden' : 'visible'
+      // Enquanto sobe, o topo do cenário se desfaz em preto, sem borda reta.
+      if (veilRef.current) veilRef.current.style.opacity = String(Math.min(Math.max(rect.top / (height * 0.15), 0), 1))
+    }
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
   const go = (event: MouseEvent<HTMLAnchorElement>, id: string) => {
     event.preventDefault()
     scrollToSection(lenis, id)
   }
 
   return (
-    <section id="fogueira" className="relative h-svh min-h-140 overflow-hidden border-t border-line bg-ink">
-      <Bonfire3D
-        hot={hot}
-        reducedMotion={reducedMotion}
-        anchors={ANCHORS}
-        onProject={handleProject}
-        onLoaded={handleLoaded}
-      />
+    <section ref={sectionRef} id="fogueira" className="relative z-10 -mt-[40svh] h-[170svh]">
+      {/* A borda de cima se desfaz em preto: o Home some atrás dela. */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-full h-[30svh] bg-linear-to-t from-ink to-transparent" />
+      <div className="sticky top-0 h-svh min-h-140 overflow-hidden bg-ink">
+        <Bonfire3D
+          hot={active !== null}
+          focus={active === null ? null : BONFIRE_SPOTS[active].target}
+          reducedMotion={reducedMotion}
+          anchors={ANCHORS}
+          onProject={handleProject}
+          onLoaded={handleLoaded}
+        />
 
-      <div className="pointer-events-none absolute top-24 left-6 lg:top-28 lg:left-20">
-        <p className="font-mono text-xs opacity-60">{'{ menu }'}</p>
-        <h2 className="mt-2 font-gothic text-4xl lg:text-6xl">Fogueira</h2>
-        <p className="mt-2 max-w-52 text-sm opacity-60">Aproxime-se. Cada marca leva a uma parte do portfólio.</p>
-      </div>
+        <div
+          ref={veilRef}
+          className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-linear-to-b from-ink to-transparent"
+        />
 
-      {/* As etiquetas repetem a lista de baixo, que é a versão acessível do menu. */}
-      <div aria-hidden="true" className={`transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'}`}>
-        {points.map((point, index) => {
-          const spot = BONFIRE_SPOTS[index]
-          const left = Math.min(Math.max(point.x, LABEL_MARGIN), width - LABEL_MARGIN)
-          return (
-            <a
-              key={spot.id}
-              href={`#${spot.id}`}
-              tabIndex={-1}
-              onClick={(event) => go(event, spot.id)}
-              onMouseEnter={heat}
-              onMouseLeave={cool}
-              style={{ left, top: point.y }}
-              className="group absolute flex -translate-x-1/2 -translate-y-full flex-col items-center"
-            >
-              <span className="border border-paper/30 bg-ink/80 px-3 py-1.5 text-sm whitespace-nowrap transition-colors duration-200 group-hover:border-ember group-hover:text-ember">
-                {spot.label} →
-              </span>
-              <span className="h-5 w-px bg-paper/40 transition-colors duration-200 group-hover:bg-ember" />
-              <span className="size-1.5 translate-y-1/2 rounded-full bg-paper transition-colors duration-200 group-hover:bg-ember" />
-            </a>
-          )
-        })}
-      </div>
+        <div ref={overlayRef}>
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-linear-to-b from-ink/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-ink to-transparent" />
 
-      <div className="absolute inset-x-6 bottom-6 flex flex-col gap-3 lg:inset-x-20 lg:bottom-8 lg:flex-row lg:items-end lg:justify-between">
-        <nav aria-label="Menu da fogueira">
-          <ul className="flex flex-wrap gap-x-6 gap-y-1">
-            {BONFIRE_SPOTS.map((spot, index) => (
-              <li key={spot.id}>
+          <div className="pointer-events-none absolute top-24 left-6 lg:top-28 lg:left-20">
+            <p className="text-xs opacity-60">{'{ menu }'}</p>
+            <h2 className="mt-2 font-gothic text-4xl lg:text-6xl">Fogueira</h2>
+            <p className="mt-2 max-w-52 text-sm opacity-60">Aproxime-se. Cada marca leva a uma parte do portfólio.</p>
+          </div>
+
+          {/* As etiquetas repetem a lista de baixo, que é a versão acessível do menu. */}
+          <div aria-hidden="true" className={`transition-opacity duration-700 ${loaded ? 'opacity-100' : 'opacity-0'}`}>
+            {points.map((point, index) => {
+              const spot = BONFIRE_SPOTS[index]
+              const isActive = active === index
+              const left = Math.min(Math.max(point.x, LABEL_MARGIN), width - LABEL_MARGIN)
+              return (
                 <a
+                  key={spot.id}
                   href={`#${spot.id}`}
+                  tabIndex={-1}
                   onClick={(event) => go(event, spot.id)}
-                  onMouseEnter={heat}
-                  onMouseLeave={cool}
-                  onFocus={heat}
-                  onBlur={cool}
-                  className="text-lg opacity-70 transition-[color,opacity] duration-200 outline-none hover:text-ember hover:opacity-100 focus-visible:text-ember focus-visible:opacity-100"
+                  onMouseEnter={() => focusSpot(index)}
+                  style={{ left, top: point.y }}
+                  className="absolute flex -translate-x-1/2 -translate-y-full flex-col items-center"
                 >
-                  <span className="mr-1.5 font-mono text-[10px] opacity-60">{String(index + 1).padStart(2, '0')}</span>
-                  {spot.label}
+                  <span
+                    className={`origin-bottom border bg-ink/80 px-3 py-1.5 text-sm whitespace-nowrap transition-[color,border-color,scale] duration-300 ${
+                      isActive ? 'scale-125 border-ember text-ember' : 'border-paper/30'
+                    }`}
+                  >
+                    {spot.label} →
+                  </span>
+                  <span
+                    className={`h-5 w-px transition-colors duration-300 ${isActive ? 'bg-ember' : 'bg-paper/40'}`}
+                  />
+                  <span
+                    className={`size-1.5 translate-y-1/2 rounded-full transition-colors duration-300 ${isActive ? 'bg-ember' : 'bg-paper'}`}
+                  />
                 </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
+              )
+            })}
+          </div>
 
-        <p className="font-mono text-[10px] leading-relaxed opacity-40 lg:text-right">
-          {MODEL_CREDITS.map((credit) => (
-            <a key={credit.url} href={credit.url} target="_blank" rel="noreferrer" className="block hover:underline">
-              {credit.title} · {credit.author} · CC BY 4.0
-            </a>
-          ))}
-        </p>
+          <div className="absolute inset-x-6 bottom-6 flex flex-col gap-3 lg:inset-x-20 lg:bottom-8 lg:flex-row lg:items-end lg:justify-between">
+            <nav aria-label="Menu da fogueira">
+              <ul className="flex flex-wrap gap-x-6 gap-y-1">
+                {BONFIRE_SPOTS.map((spot, index) => (
+                  <li key={spot.id}>
+                    <a
+                      href={`#${spot.id}`}
+                      onClick={(event) => go(event, spot.id)}
+                      onMouseEnter={() => focusSpot(index)}
+                      onFocus={() => focusSpot(index)}
+                      onBlur={() => focusSpot(null)}
+                      className={`text-lg transition-[color,opacity] duration-200 outline-none ${
+                        active === index ? 'text-ember opacity-100' : 'opacity-70'
+                      }`}
+                    >
+                      <span className="mr-1.5 text-[10px] opacity-60">{String(index + 1).padStart(2, '0')}</span>
+                      {spot.label}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+
+            <p className="text-[10px] leading-relaxed opacity-40 lg:text-right">
+              {MODEL_CREDITS.map((credit) => (
+                <a
+                  key={credit.url}
+                  href={credit.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="block hover:underline"
+                >
+                  {credit.title} · {credit.author} · CC BY 4.0
+                </a>
+              ))}
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   )

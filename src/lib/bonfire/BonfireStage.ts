@@ -2,16 +2,27 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 
-const FOV = 35
+const FOV = 46
+/** Largura da cena que precisa caber na tela, medida como tangente do ângulo horizontal. */
+const FIT_TANGENT = 0.52
 const FLAME_COUNT = 320
 const EMBER_COUNT = 90
 /** Tempo fixo usado com movimento reduzido: o fogo fica como uma imagem parada. */
 const STILL_TIME = 2.3
+/** Quanto o elemento em destaque cresce quando o mouse chega perto. */
+const FOCUS_SCALE = 1.08
+const ROOM_URL = '/models/room.glb'
 const BONFIRE_URL = '/models/bonfire.glb'
 const KNIGHT_URL = '/models/artorias.glb'
-/** Maior medida horizontal de cada modelo na cena. */
-const BONFIRE_SIZE = 3
-const KNIGHT_SIZE = 3.2
+/** Maior medida horizontal da fogueira na cena. */
+const BONFIRE_SIZE = 3.2
+/** Encaixa o salão: o vitral fica atrás dos personagens e o centro das cinzas, na origem. */
+const ROOM_POSITION = new THREE.Vector3(0.4, -0.9, -0.1)
+/** Onde cada personagem fica: nome do nó no modelo, altura, posição no chão e giro (radianos). */
+const FIGURES = [
+  { name: 'Artorias', height: 3.6, x: -1.15, z: -1.5, turn: -0.3 },
+  { name: 'Sif', height: 1.9, x: 1.75, z: -1.6, turn: 0 },
+]
 
 export interface StagePoint {
   x: number
@@ -29,15 +40,14 @@ interface BonfireStageOptions {
 
 /**
  * Fogueira do menu (classe, sem React). O fogo e as brasas são feitos em shader, sobre o modelo da
- * fogueira; Artorias e Sif ficam ao lado, iluminados por ela.
+ * fogueira, no meio do salão; Artorias e Sif ficam atrás dela, iluminados por ela.
  * Só desenha enquanto está visível.
  */
 export class BonfireStage {
   private renderer: THREE.WebGLRenderer
   private scene = new THREE.Scene()
-  private camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 50)
-  private light = new THREE.PointLight(0xff8a3c, 14, 12, 1.8)
-  private knight = new THREE.Group()
+  private camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 60)
+  private light = new THREE.PointLight(0xff8a3c, 40, 18, 1.6)
   private flames: THREE.ShaderMaterial
   private embers: THREE.ShaderMaterial
   private resizeObserver: ResizeObserver
@@ -45,6 +55,9 @@ export class BonfireStage {
   private container: HTMLElement
   private reducedMotion: boolean
   private options: BonfireStageOptions
+  /** Elementos que podem ganhar destaque: Artorias, Sif e a fogueira. */
+  private focusables = new Map<string, { group: THREE.Group; scale: number; focus: number }>()
+  private focusTarget: string | null = null
   private frame = 0
   private visible = false
   private disposed = false
@@ -56,27 +69,27 @@ export class BonfireStage {
     this.options = options
     this.reducedMotion = options.reducedMotion
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5))
     this.renderer.setClearColor(0x000000)
     this.renderer.domElement.style.display = 'block'
+    // Sem memória de vídeo o canvas fica branco; escondido, sobra o fundo preto da seção.
+    this.renderer.domElement.addEventListener('webglcontextlost', () => {
+      this.renderer.domElement.style.visibility = 'hidden'
+    })
     container.appendChild(this.renderer.domElement)
 
-    this.light.position.set(0, 0.85, 0.15)
-    // Luz fria e fraca de cima: separa o cavaleiro e o lobo do fundo preto.
-    const moon = new THREE.DirectionalLight(0xa8bcd8, 0.9)
-    moon.position.set(-2, 4, 3)
-    const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(9, 48),
-      new THREE.MeshStandardMaterial({ color: 0x24211e, roughness: 1 }),
-    )
-    ground.rotation.x = -Math.PI / 2
-    ground.position.y = -0.01
-    this.scene.add(this.light, moon, new THREE.AmbientLight(0xffb080, 0.05), ground, this.knight)
+    this.light.position.set(0, 1.4, 0.4)
+    // Luz fria vinda do vitral e um pouco de claridade geral, para o salão não sumir no preto.
+    const windowLight = new THREE.DirectionalLight(0xa8bcd8, 1.1)
+    windowLight.position.set(0.5, 5, -5)
+    const front = new THREE.DirectionalLight(0xffd8b8, 1.1)
+    front.position.set(0, 3, 5)
+    this.scene.add(this.light, windowLight, front, new THREE.HemisphereLight(0xb8c4d8, 0x2a1c14, 0.55))
     this.load()
 
     // Chamas: grandes, somem cedo. Brasas: pontinhas que sobem bem mais alto.
-    this.flames = createFireMaterial({ speed: 0.75, rise: 1.15, spread: 0.3, size: 0.62, embers: 0 })
-    this.embers = createFireMaterial({ speed: 0.16, rise: 3.1, spread: 0.55, size: 0.045, embers: 1 })
+    this.flames = createFireMaterial({ speed: 0.75, rise: 1.7, spread: 0.42, size: 0.95, embers: 0 })
+    this.embers = createFireMaterial({ speed: 0.16, rise: 4.6, spread: 0.85, size: 0.06, embers: 1 })
     this.scene.add(createFirePoints(FLAME_COUNT, this.flames), createFirePoints(EMBER_COUNT, this.embers))
 
     this.resizeObserver = new ResizeObserver(() => this.resize())
@@ -96,6 +109,15 @@ export class BonfireStage {
     if (this.reducedMotion) {
       this.heat = this.heatTarget
       this.update(STILL_TIME)
+      this.render()
+    }
+  }
+
+  /** Dá destaque a um elemento da cena; null tira o destaque. */
+  setFocus(target: string | null) {
+    this.focusTarget = target
+    if (this.reducedMotion) {
+      this.updateFocus(1)
       this.render()
     }
   }
@@ -120,37 +142,55 @@ export class BonfireStage {
     this.renderer.domElement.remove()
   }
 
-  /** Coloca o modelo com a base no chão, centralizado e com a maior medida horizontal pedida. */
-  private async loadModel(loader: GLTFLoader, url: string, size: number) {
-    const { scene } = await loader.loadAsync(url)
-    // A caixa de uma malha com esqueleto depende dos ossos já calculados.
-    scene.updateMatrixWorld(true)
-    scene.traverse((object) => {
-      if (object instanceof THREE.SkinnedMesh) object.skeleton.update()
-    })
-    const box = new THREE.Box3().setFromObject(scene)
-    const measures = box.getSize(new THREE.Vector3())
-    const center = box.getCenter(new THREE.Vector3())
-    const scale = size / Math.max(measures.x, measures.z)
-    scene.scale.setScalar(scale)
-    scene.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale)
-    scene.traverse((object) => {
-      // O esqueleto move a malha para longe da caixa original; sem isto ela some em alguns ângulos.
-      if (object instanceof THREE.SkinnedMesh) object.frustumCulled = false
-    })
-    return scene
-  }
-
   private async load() {
     const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
-    const [bonfire, knight] = await Promise.all([
-      this.loadModel(loader, BONFIRE_URL, BONFIRE_SIZE),
-      this.loadModel(loader, KNIGHT_URL, KNIGHT_SIZE),
-    ])
+    const [room, bonfire, knight] = await Promise.all(
+      [ROOM_URL, BONFIRE_URL, KNIGHT_URL].map((url) => loader.loadAsync(url).then((gltf) => gltf.scene)),
+    )
     if (this.disposed) return
-    this.scene.add(bonfire)
-    this.knight.add(knight)
-    this.knight.position.set(0, 0, -2.2)
+
+    room.rotation.y = Math.PI
+    room.position.copy(ROOM_POSITION)
+    this.scene.add(room)
+
+    bonfire.traverse((object) => {
+      // O chão do modelo da fogueira sairia como um disco sobre o piso do salão.
+      if (object instanceof THREE.Mesh && (object.material as THREE.Material).name === 'boden') object.visible = false
+    })
+    const bonfireBox = measure(bonfire)
+    const bonfireSize = bonfireBox.getSize(new THREE.Vector3())
+    const bonfireCenter = bonfireBox.getCenter(new THREE.Vector3())
+    const bonfireScale = BONFIRE_SIZE / Math.max(bonfireSize.x, bonfireSize.z)
+    bonfire.scale.setScalar(bonfireScale)
+    bonfire.position.set(
+      -bonfireCenter.x * bonfireScale,
+      -bonfireBox.min.y * bonfireScale,
+      -bonfireCenter.z * bonfireScale,
+    )
+    const bonfirePivot = new THREE.Group()
+    bonfirePivot.add(bonfire)
+    this.scene.add(bonfirePivot)
+    this.focusables.set('bonfire', { group: bonfirePivot, scale: 1, focus: 0 })
+
+    for (const figure of FIGURES) {
+      const node = knight.getObjectByName(figure.name)
+      if (!node) continue
+      // Um pivô no pé de cada personagem: gira e escala sem tirá-lo do lugar.
+      const box = measure(node)
+      const size = box.getSize(new THREE.Vector3())
+      const center = box.getCenter(new THREE.Vector3())
+      const pivot = new THREE.Group()
+      pivot.position.set(center.x, box.min.y, center.z)
+      pivot.updateMatrixWorld()
+      pivot.attach(node)
+      const scale = figure.height / size.y
+      pivot.scale.setScalar(scale)
+      this.focusables.set(figure.name, { group: pivot, scale, focus: 0 })
+      pivot.position.set(figure.x, 0, figure.z)
+      pivot.rotation.y = figure.turn
+      this.scene.add(pivot)
+    }
+
     if (this.reducedMotion) this.update(STILL_TIME)
     this.render()
     this.options.onLoaded()
@@ -161,14 +201,13 @@ export class BonfireStage {
     if (!width || !height) return
     this.renderer.setSize(width, height)
     const aspect = width / height
-    const tangent = Math.tan(THREE.MathUtils.degToRad(FOV / 2))
-    // Afasta a câmera em telas estreitas para a fogueira e a espada do cavaleiro continuarem inteiras.
-    const distance = Math.max(6.6, 3.5 / (2 * tangent * aspect))
+    // A câmera fica presa dentro do salão: em tela estreita, abre o ângulo em vez de se afastar.
+    const tangent = Math.max(Math.tan(THREE.MathUtils.degToRad(FOV / 2)), FIT_TANGENT / aspect)
+    this.camera.fov = THREE.MathUtils.radToDeg(Math.atan(tangent)) * 2
     this.camera.aspect = aspect
-    this.camera.position.set(0, 1.25, distance)
-    this.camera.lookAt(0, 1, 0)
     this.camera.updateProjectionMatrix()
-    this.camera.updateMatrixWorld()
+    // As etiquetas ficam presas à posição de descanso da câmera.
+    this.placeCamera(0, 0)
     this.options.onProject(
       this.options.anchors.map(([x, y, z]) => {
         const point = new THREE.Vector3(x, y, z).project(this.camera)
@@ -181,7 +220,33 @@ export class BonfireStage {
     if (this.reducedMotion) {
       this.update(STILL_TIME)
     }
+    this.followScroll()
     this.render()
+  }
+
+  /** enter: 1 com a seção ainda embaixo da tela. exit: 1 com a câmera já dentro do fogo. */
+  private placeCamera(enter: number, exit: number) {
+    const push = exit * exit
+    this.camera.position.set(0.5 - push * 0.4, 1.9 + enter * 2.6 - push * 0.6, 4.6 - push * 3)
+    this.camera.lookAt(0.2 - push * 0.2, 1.6 + enter * 1.2 - push * 0.6, -1 + push)
+    this.camera.updateMatrixWorld()
+  }
+
+  /** A câmera acompanha a rolagem: desce para o salão ao chegar e avança para o fogo ao sair. */
+  private followScroll() {
+    if (this.reducedMotion) return
+    const section = this.container.closest('section')
+    if (!section) return
+    const { top } = section.getBoundingClientRect()
+    const height = window.innerHeight
+    this.placeCamera(THREE.MathUtils.clamp(top / height, 0, 1), THREE.MathUtils.clamp(-top / (height * 0.7), 0, 1))
+  }
+
+  private updateFocus(ease: number) {
+    for (const [name, item] of this.focusables) {
+      item.focus += ((name === this.focusTarget ? 1 : 0) - item.focus) * ease
+      item.group.scale.setScalar(item.scale * (1 + (FOCUS_SCALE - 1) * item.focus))
+    }
   }
 
   private play() {
@@ -194,6 +259,8 @@ export class BonfireStage {
     const tick = () => {
       if (!this.visible) return
       this.heat += (this.heatTarget - this.heat) * 0.05
+      this.updateFocus(0.08)
+      this.followScroll()
       this.update(performance.now() / 1000)
       this.render()
       this.frame = requestAnimationFrame(tick)
@@ -207,12 +274,25 @@ export class BonfireStage {
       material.uniforms.uHeat.value = this.heat
     }
     const flicker = Math.sin(time * 11) * 0.5 + Math.sin(time * 23.7) * 0.3 + Math.sin(time * 5.3) * 0.6
-    this.light.intensity = 13 + this.heat * 9 + flicker * 1.6
+    this.light.intensity = 40 + this.heat * 26 + flicker * 4
   }
 
   private render() {
     this.renderer.render(this.scene, this.camera)
   }
+}
+
+/** Caixa do objeto com o esqueleto já calculado; sem isso, malhas com ossos dão uma caixa errada. */
+function measure(object: THREE.Object3D) {
+  object.updateWorldMatrix(true, true)
+  object.traverse((child) => {
+    if (child instanceof THREE.SkinnedMesh) {
+      child.skeleton.update()
+      // Os ossos movem a malha para longe da caixa original; sem isto ela some em alguns ângulos.
+      child.frustumCulled = false
+    }
+  })
+  return new THREE.Box3().setFromObject(object)
 }
 
 interface FireOptions {

@@ -32,7 +32,7 @@ export function AboutPanel() {
       </nav>
 
       <div className="min-h-96 border-t border-paper/20 pt-5 md:border-t-0 md:border-l md:pt-0 md:pl-12">
-        <h3 className="font-gothic text-4xl lg:text-6xl">{active}</h3>
+        <h3 className="text-4xl lg:text-5xl">{active}</h3>
         <div className="mt-6 max-w-2xl lg:mt-8">
           {active === 'Status' && (
             <>
@@ -63,7 +63,7 @@ export function AboutPanel() {
               <ol className="grid gap-6">
                 {TIMELINE.map((item) => (
                   <li key={item.title}>
-                    <p className="font-mono text-xs uppercase opacity-45">{item.period}</p>
+                    <p className="text-xs uppercase opacity-45">{item.period}</p>
                     <h4 className="mt-1 text-xl font-semibold">{item.title}</h4>
                     <p className="mt-2 leading-relaxed opacity-70">{item.description}</p>
                   </li>

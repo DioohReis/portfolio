@@ -32,6 +32,11 @@ export const INVENTORY: InventoryItem[] = [
 /** Créditos dos modelos 3D da fogueira (licença CC BY 4.0, exige citar autor e fonte). */
 export const MODEL_CREDITS = [
   {
+    title: 'Dark Souls (cenário)',
+    author: 'dark_igorek',
+    url: 'https://sketchfab.com/3d-models/dark-souls-d823af63681b4e65b222606043ec81c7',
+  },
+  {
     title: 'Dark Souls - Bonfire',
     author: 'UselessViking',
     url: 'https://sketchfab.com/3d-models/dark-souls-bonfire-b0d68c8f4cd0487da3d1fb8327ab1044',

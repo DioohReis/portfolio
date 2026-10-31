@@ -4,6 +4,8 @@ import type { BonfireStage, StagePoint } from '../../lib/bonfire/BonfireStage'
 interface Bonfire3DProps {
   /** Mouse em cima ou foco do teclado: o fogo cresce. */
   hot: boolean
+  /** Elemento da cena em destaque. */
+  focus: string | null
   reducedMotion: boolean
   anchors: [number, number, number][]
   onProject: (points: StagePoint[]) => void
@@ -11,7 +13,7 @@ interface Bonfire3DProps {
   className?: string
 }
 
-export function Bonfire3D({ hot, reducedMotion, anchors, onProject, onLoaded, className = '' }: Bonfire3DProps) {
+export function Bonfire3D({ hot, focus, reducedMotion, anchors, onProject, onLoaded, className = '' }: Bonfire3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<BonfireStage | null>(null)
   const hotRef = useRef(hot)
@@ -48,6 +50,10 @@ export function Bonfire3D({ hot, reducedMotion, anchors, onProject, onLoaded, cl
     hotRef.current = hot
     stageRef.current?.setHot(hot)
   }, [hot])
+
+  useEffect(() => {
+    stageRef.current?.setFocus(focus)
+  }, [focus])
 
   return <div ref={containerRef} className={`absolute inset-0 ${className}`} aria-hidden="true" />
 }

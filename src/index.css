@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter-tight';
+@import '@fontsource-variable/eb-garamond';
 
 @font-face {
   font-family: 'Sanguine Frost';
@@ -14,7 +14,7 @@
   --color-line: rgb(255 255 255 / 0.06);
   --color-ember: #f0924a;
 
-  --font-sans: 'Inter Tight Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'EB Garamond Variable', Georgia, serif;
   --font-gothic: 'Sanguine Frost', serif;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
