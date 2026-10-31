@@ -3,12 +3,16 @@ import { CrtIntro } from './components/intro/CrtIntro'
 import { Header } from './components/layout/Header'
 import { LenisContext, useCreateLenis } from './hooks/useLenis'
 import { useReducedMotion } from './hooks/useReducedMotion'
+import { useSectionSnap } from './hooks/useSectionSnap'
 import { About } from './sections/About'
 import { Bonfire } from './sections/Bonfire'
 import { Certificates } from './sections/Certificates'
 import { Contact } from './sections/Contact'
 import { Home } from './sections/Home'
 import { Projects } from './sections/Projects'
+
+/** Seções de tela cheia em que a rolagem encaixa, sem parar no meio do caminho. */
+const SNAP_SECTIONS = ['home', 'fogueira', 'sobre']
 
 /**
  * Fluxo da entrada:
@@ -23,6 +27,7 @@ export default function App() {
   const [introDone, setIntroDone] = useState(false)
 
   const lenis = useCreateLenis(!reducedMotion)
+  useSectionSnap(lenis, SNAP_SECTIONS, started, reducedMotion)
 
   // Sempre começa do topo e trava a rolagem enquanto a TV está aberta.
   useEffect(() => {
@@ -55,7 +60,7 @@ export default function App() {
       <main>
         <Home started={started} reducedMotion={reducedMotion} onParticlesReady={handleParticlesReady} />
         <Bonfire reducedMotion={reducedMotion} />
-        <About />
+        <About reducedMotion={reducedMotion} />
         <Projects />
         <Certificates />
         <Contact />
