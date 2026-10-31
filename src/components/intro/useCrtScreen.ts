@@ -50,8 +50,9 @@ export function useCrtScreen({
       canvas.height = H * dpr
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       noise = document.createElement('canvas')
-      noise.width = Math.ceil(W / 2)
-      noise.height = Math.ceil(H / 2)
+      // Em uma aba ainda sem tamanho, W e H chegam a 0 e createImageData derrubaria a página.
+      noise.width = Math.max(1, Math.ceil(W / 2))
+      noise.height = Math.max(1, Math.ceil(H / 2))
       noiseCtx = noise.getContext('2d')!
       noiseImg = noiseCtx.createImageData(noise.width, noise.height)
       noiseBuf = new Uint32Array(noiseImg.data.buffer)

@@ -53,7 +53,7 @@ export default function App() {
       <Header hidden={!started} />
       <main>
         <Home started={started} reducedMotion={reducedMotion} onParticlesReady={handleParticlesReady} />
-        <About />
+        <About reducedMotion={reducedMotion} />
         <Projects />
         <Certificates />
         <Contact />
