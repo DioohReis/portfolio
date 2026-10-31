@@ -23,11 +23,13 @@ const ROOM_POSITION = new THREE.Vector3(0.4, -0.9, -0.1)
 /** Onde cada personagem fica: nome do nó no modelo, altura, posição no chão e giro (radianos). */
 const FIGURES = [
   { name: 'Artorias', height: 3.6, x: -1.9, z: -0.9, turn: 0.15 },
-  { name: 'Sif', height: 2.1, x: -0.2, z: -2.2, turn: -2.6 },
+  { name: 'Sif', height: 2.1, x: -0.1, z: -2.2, turn: -0.7 },
 ]
 /** Em tela em pé os personagens chegam mais perto da fogueira, para todos caberem. */
 const NARROW_SPREAD = 0.68
-const SPEAR_KNIGHT = { height: 3.7, x: 1.9, z: -0.9, turn: 0 }
+/** Giro que deixa a cabeça do Artorias reta, olhando para a frente (no modelo ela olha para o lado). */
+const KNIGHT_HEAD = { bone: 'Head_067', turn: new THREE.Euler(-0.2, 0.7, 0) }
+const SPEAR_KNIGHT = { height: 3.5, x: 1.9, z: -0.9, turn: 0 }
 /** Aonde a câmera vai quando cada elemento ganha destaque: posição e ponto para onde olha. */
 const VIEWS: Record<string, { position: THREE.Vector3; look: THREE.Vector3 }> = {
   Artorias: { position: new THREE.Vector3(-1.6, 2.7, 1.6), look: new THREE.Vector3(-1.9, 2.6, -0.9) },
@@ -209,6 +211,8 @@ export class BonfireStage {
       this.scene.add(pivot)
     }
 
+    straightenHead(this.scene)
+
     // A medida vem antes da pose: com a lança de pé, a caixa ficaria mais alta que o personagem.
     const spearBox = measure(spearKnight)
     const spearHeight = spearBox.max.y - spearBox.min.y
@@ -331,6 +335,15 @@ export class BonfireStage {
   private render() {
     this.renderer.render(this.scene, this.camera)
   }
+}
+
+function straightenHead(scene: THREE.Object3D) {
+  const bone = scene.getObjectByName(KNIGHT_HEAD.bone)
+  if (!bone?.parent) return
+  scene.updateMatrixWorld(true)
+  const turn = new THREE.Quaternion().setFromEuler(KNIGHT_HEAD.turn)
+  const world = bone.getWorldQuaternion(new THREE.Quaternion()).premultiply(turn)
+  bone.quaternion.copy(bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(world))
 }
 
 /** Caixa do objeto com o esqueleto já calculado; sem isso, malhas com ossos dão uma caixa errada. */

@@ -11,6 +11,16 @@ function aim(bone: THREE.Object3D, from: THREE.Vector3, to: THREE.Vector3) {
   bone.updateWorldMatrix(false, true)
 }
 
+/** A ombreira não é filha do braço: gira junto com ele, um pouco menos, para não ficar na pose de T. */
+function followArm(pauldron: THREE.Object3D, arm: THREE.Object3D, armBefore: THREE.Quaternion) {
+  const turn = arm.getWorldQuaternion(new THREE.Quaternion()).multiply(armBefore.clone().invert())
+  turn.slerp(new THREE.Quaternion(), 0.25)
+  const world = pauldron.getWorldQuaternion(new THREE.Quaternion()).premultiply(turn)
+  const parent = pauldron.parent?.getWorldQuaternion(new THREE.Quaternion()) ?? new THREE.Quaternion()
+  pauldron.quaternion.copy(parent.invert().multiply(world))
+  pauldron.updateWorldMatrix(false, true)
+}
+
 /** Dobra o braço para o pulso chegar em `target`; o cotovelo abre na direção de `pole`. */
 function reach(
   shoulder: THREE.Object3D,
@@ -62,6 +72,8 @@ export function poseSpearKnight(model: THREE.Object3D, height: number) {
   const center = worldPosition(hips)
   const up = new THREE.Vector3(0, 1, 0)
   const restSpear = spear.getWorldQuaternion(new THREE.Quaternion()).invert()
+  const rightBefore = rightShoulder.getWorldQuaternion(new THREE.Quaternion())
+  const leftBefore = leftShoulder.getWorldQuaternion(new THREE.Quaternion())
 
   // Mão direita embaixo, um pouco abaixo do peito.
   const grip = new THREE.Vector3(center.x - height * 0.03, height * 0.56, center.z + height * 0.24)
@@ -78,4 +90,9 @@ export function poseSpearKnight(model: THREE.Object3D, height: number) {
   reach(leftShoulder, leftElbow, leftWrist, leftGrip, new THREE.Vector3(1, -0.6, -0.4))
   const leftHand = worldPosition(bone('arm_left_finger_c1') ?? leftWrist).sub(worldPosition(leftWrist))
   aim(leftWrist, leftHand, new THREE.Vector3(-1, 0, 0.15))
+
+  const rightPauldron = bone('arm_right_pauldron')
+  const leftPauldron = bone('arm_left_pauldron')
+  if (rightPauldron) followArm(rightPauldron, rightShoulder, rightBefore)
+  if (leftPauldron) followArm(leftPauldron, leftShoulder, leftBefore)
 }
