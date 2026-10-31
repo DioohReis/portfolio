@@ -38,7 +38,9 @@ export function Header({ hidden }: HeaderProps) {
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 border-b transition-[background-color,border-color,opacity,translate] duration-700 ease-out-soft ${
-        solid && !menuOpen ? 'border-line bg-ink/70 backdrop-blur-md' : 'border-transparent'
+        solid && !menuOpen
+          ? `border-line backdrop-blur-md ${active === 'home' ? 'bg-ink/70' : 'bg-night/70'}`
+          : 'border-transparent'
       } ${hidden ? 'pointer-events-none -translate-y-3 opacity-0' : ''}`}
     >
       <div className="mx-auto flex h-18 max-w-360 items-center justify-between px-6 lg:h-20 lg:px-20">
@@ -46,7 +48,11 @@ export function Header({ hidden }: HeaderProps) {
           href="#home"
           onClick={(e) => go(e, 'home')}
           aria-label={`${SITE_OWNER}, voltar ao início`}
-          className="relative z-60 font-gothic text-2xl leading-none tracking-[0.02em] whitespace-nowrap transition-opacity duration-200 hover:opacity-75 lg:text-[30px]"
+          className={`relative z-60 leading-none whitespace-nowrap transition-opacity duration-200 hover:opacity-75 ${
+            active === 'home'
+              ? 'font-gothic text-2xl tracking-[0.02em] lg:text-[30px]'
+              : 'text-lg font-semibold tracking-[0.08em] lg:text-xl'
+          }`}
         >
           {SITE_OWNER.toUpperCase()}
         </a>
@@ -98,7 +104,7 @@ export function Header({ hidden }: HeaderProps) {
 
       <div
         id="mobile-menu"
-        className={`fixed inset-0 z-55 flex h-dvh flex-col justify-center gap-1.5 bg-ink px-6 transition-opacity duration-400 ease-out-soft lg:hidden ${
+        className={`fixed inset-0 z-55 flex h-dvh flex-col justify-center gap-1.5 bg-night px-6 transition-opacity duration-400 ease-out-soft lg:hidden ${
           menuOpen ? 'opacity-100' : 'pointer-events-none opacity-0'
         }`}
         aria-hidden={!menuOpen}

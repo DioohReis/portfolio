@@ -27,7 +27,7 @@ export function Home({ started, reducedMotion, onParticlesReady }: HomeProps) {
   }, [reducedMotion])
 
   return (
-    <section id="home" className="relative h-[170svh]" aria-label="Início">
+    <section id="home" className="relative h-[170svh] bg-ink" aria-label="Início">
       <div ref={stageRef} className="sticky top-0 h-svh overflow-hidden">
         <h1 className="sr-only">Diogo A Reis — Start Hello World</h1>
         <ParticleText lines={HERO_LINES} started={started} reducedMotion={reducedMotion} onReady={onParticlesReady} />

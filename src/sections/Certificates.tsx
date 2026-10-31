@@ -16,7 +16,7 @@ export function Certificates() {
       ) : (
         <ul className="mt-16 grid gap-px border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
           {CERTIFICATES.map((cert) => (
-            <li key={cert.title + cert.date} className="flex flex-col gap-2 bg-ink p-6">
+            <li key={cert.title + cert.date} className="flex flex-col gap-2 bg-night p-6">
               <p className="text-xs uppercase opacity-45">
                 {cert.issuer} · {fmt.format(new Date(`${cert.date}-01T12:00:00`))}
               </p>

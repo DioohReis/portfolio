@@ -5,7 +5,7 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
   const { title, summary, stack, category, year, cover, repoUrl, liveUrl } = project
   return (
     <article className="group relative overflow-hidden border border-line bg-white/[0.02]">
-      <div className="relative aspect-16/10 overflow-hidden bg-[#0b0b0b]">
+      <div className="relative aspect-16/10 overflow-hidden bg-white/[0.03]">
         {cover ? (
           <img
             src={cover}
@@ -20,7 +20,7 @@ export function ProjectCard({ project, index }: { project: Project; index: numbe
         )}
         <Marquee
           items={stack}
-          className="absolute inset-x-0 bottom-0 border-t border-line bg-ink py-2 text-[13px] tracking-wide"
+          className="absolute inset-x-0 bottom-0 border-t border-line bg-night py-2 text-[13px] tracking-wide"
         />
       </div>
 

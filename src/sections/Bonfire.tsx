@@ -113,7 +113,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
       <div className="pointer-events-none absolute inset-x-0 bottom-full h-[30svh] bg-linear-to-t from-ink to-transparent" />
       <div
         onClick={enterActive}
-        className={`sticky top-0 h-svh min-h-140 overflow-hidden bg-ink ${active !== null ? 'cursor-pointer' : ''}`}
+        className={`sticky top-0 h-svh min-h-140 overflow-hidden bg-night ${active !== null ? 'cursor-pointer' : ''}`}
       >
         <Bonfire3D
           hot={active !== null}
@@ -130,8 +130,8 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
         />
 
         <div ref={overlayRef}>
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-linear-to-b from-ink/80 to-transparent" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-ink to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-linear-to-b from-night/80 to-transparent" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-night to-transparent" />
 
           <div
             className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-20 ${
@@ -139,7 +139,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
             }`}
           >
             <p className="text-xs opacity-60">{'{ menu }'}</p>
-            <h2 className="mt-2 font-gothic text-4xl lg:text-6xl">Fogueira</h2>
+            <h2 className="mt-2 text-4xl font-semibold tracking-[-0.03em] lg:text-6xl">Fogueira</h2>
             <p className="mt-2 max-w-52 text-sm opacity-60">Aproxime-se de cada elemento e clique para entrar.</p>
           </div>
 
@@ -164,7 +164,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
                   style={{ left, top: point.y }}
                   className="absolute flex -translate-x-1/2 -translate-y-full flex-col items-center"
                 >
-                  <span className="border border-paper/30 bg-ink/80 px-3 py-1.5 text-sm whitespace-nowrap">
+                  <span className="border border-paper/30 bg-night/80 px-3 py-1.5 text-sm whitespace-nowrap">
                     {spot.label} →
                   </span>
                   <span className="h-5 w-px bg-paper/40" />
@@ -180,7 +180,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
               active !== null ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            <span className="block font-gothic text-5xl lg:text-7xl">
+            <span className="block text-5xl font-semibold tracking-[-0.03em] lg:text-7xl">
               {active !== null && BONFIRE_SPOTS[active].label}
             </span>
             <span className="mt-2 block text-sm opacity-70">{'{ clique para entrar }'}</span>

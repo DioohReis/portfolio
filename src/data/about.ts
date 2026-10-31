@@ -17,6 +17,7 @@ export const QUALITIES = [
   { name: 'Força de vontade', description: 'Continuo até sair o melhor que eu consigo.' },
 ]
 
+/** Guardado para a futura seção de skills; ainda não aparece no site. */
 export const SKILL_GROUPS = [
   { name: 'Front-end', items: ['React', 'TypeScript', 'JavaScript', 'Next.js', 'Vite', 'Tailwind CSS'] },
   { name: 'Back-end', items: ['Java', 'Spring Boot', 'Python', 'FastAPI', 'APIs REST'] },
