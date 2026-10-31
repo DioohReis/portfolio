@@ -28,3 +28,17 @@ export const INVENTORY: InventoryItem[] = [
   { name: 'Dark Souls', description: 'Descrição provisória: escreva aqui o que esse jogo significa para você.' },
   { name: 'Jogos de computador', description: 'Descrição provisória: seus jogos e o seu setup.' },
 ]
+
+/** Créditos dos modelos 3D da fogueira (licença CC BY 4.0, exige citar autor e fonte). */
+export const MODEL_CREDITS = [
+  {
+    title: 'Dark Souls - Bonfire',
+    author: 'UselessViking',
+    url: 'https://sketchfab.com/3d-models/dark-souls-bonfire-b0d68c8f4cd0487da3d1fb8327ab1044',
+  },
+  {
+    title: 'Knight Artorias and Great Grey Wolf Sif',
+    author: '9S',
+    url: 'https://sketchfab.com/3d-models/knight-artorias-and-great-grey-wolf-sif-bdf57355f95a420fa0c5b3e924bea16d',
+  },
+]

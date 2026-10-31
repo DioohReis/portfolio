@@ -1,14 +1,21 @@
 import * as THREE from 'three'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
 
 const FOV = 35
 const FLAME_COUNT = 320
 const EMBER_COUNT = 90
 /** Tempo fixo usado com movimento reduzido: o fogo fica como uma imagem parada. */
 const STILL_TIME = 2.3
+const BONFIRE_URL = '/models/bonfire.glb'
+const KNIGHT_URL = '/models/artorias.glb'
+/** Maior medida horizontal de cada modelo na cena. */
+const BONFIRE_SIZE = 3
+const KNIGHT_SIZE = 3.2
 
 /**
- * Fogueira do Sobre (classe, sem React). O fogo e as brasas são feitos em shader; o monte de cinzas,
- * os ossos e a espada são formas simples, provisórias, até o modelo definitivo chegar.
+ * Fogueira do Sobre (classe, sem React). O fogo e as brasas são feitos em shader, sobre o modelo da
+ * fogueira; Artorias e Sif ficam ao lado, iluminados por ela.
  * Só desenha enquanto está visível.
  */
 export class BonfireStage {
@@ -16,6 +23,7 @@ export class BonfireStage {
   private scene = new THREE.Scene()
   private camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 50)
   private light = new THREE.PointLight(0xff8a3c, 14, 12, 1.8)
+  private knight = new THREE.Group()
   private flames: THREE.ShaderMaterial
   private embers: THREE.ShaderMaterial
   private resizeObserver: ResizeObserver
@@ -24,6 +32,7 @@ export class BonfireStage {
   private reducedMotion: boolean
   private frame = 0
   private visible = false
+  private disposed = false
   private heat = 0
   private heatTarget = 0
 
@@ -37,8 +46,17 @@ export class BonfireStage {
     container.appendChild(this.renderer.domElement)
 
     this.light.position.set(0, 0.85, 0.15)
-    this.scene.add(this.light, new THREE.AmbientLight(0xffb080, 0.05))
-    this.buildScenery()
+    // Luz fria e fraca de cima: separa o cavaleiro e o lobo do fundo preto.
+    const moon = new THREE.DirectionalLight(0xa8bcd8, 0.9)
+    moon.position.set(-2, 4, 3)
+    const ground = new THREE.Mesh(
+      new THREE.CircleGeometry(9, 48),
+      new THREE.MeshStandardMaterial({ color: 0x24211e, roughness: 1 }),
+    )
+    ground.rotation.x = -Math.PI / 2
+    ground.position.y = -0.01
+    this.scene.add(this.light, moon, new THREE.AmbientLight(0xffb080, 0.05), ground, this.knight)
+    this.load()
 
     // Chamas: grandes, somem cedo. Brasas: pontinhas que sobem bem mais alto.
     this.flames = createFireMaterial({ speed: 0.75, rise: 1.15, spread: 0.3, size: 0.62, embers: 0 })
@@ -67,73 +85,58 @@ export class BonfireStage {
   }
 
   dispose() {
+    this.disposed = true
     cancelAnimationFrame(this.frame)
     this.resizeObserver.disconnect()
     this.visibilityObserver.disconnect()
     this.scene.traverse((object) => {
       if (!(object instanceof THREE.Mesh || object instanceof THREE.Points)) return
       object.geometry.dispose()
-      ;(object.material as THREE.Material).dispose()
+      const material = object.material as THREE.MeshStandardMaterial
+      material.map?.dispose()
+      material.normalMap?.dispose()
+      material.metalnessMap?.dispose()
+      material.roughnessMap?.dispose()
+      material.emissiveMap?.dispose()
+      material.dispose()
     })
     this.renderer.dispose()
     this.renderer.domElement.remove()
   }
 
-  private buildScenery() {
-    const ash = new THREE.MeshStandardMaterial({ color: 0x4a4540, roughness: 1, flatShading: true })
-    const bone = new THREE.MeshStandardMaterial({ color: 0xa89d8a, roughness: 0.9, flatShading: true })
-    const iron = new THREE.MeshStandardMaterial({ color: 0x3a3836, roughness: 0.55, metalness: 0.7, flatShading: true })
+  /** Coloca o modelo com a base no chão, centralizado e com a maior medida horizontal pedida. */
+  private async loadModel(loader: GLTFLoader, url: string, size: number) {
+    const { scene } = await loader.loadAsync(url)
+    // A caixa de uma malha com esqueleto depende dos ossos já calculados.
+    scene.updateMatrixWorld(true)
+    scene.traverse((object) => {
+      if (object instanceof THREE.SkinnedMesh) object.skeleton.update()
+    })
+    const box = new THREE.Box3().setFromObject(scene)
+    const measures = box.getSize(new THREE.Vector3())
+    const center = box.getCenter(new THREE.Vector3())
+    const scale = size / Math.max(measures.x, measures.z)
+    scene.scale.setScalar(scale)
+    scene.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale)
+    scene.traverse((object) => {
+      // O esqueleto move a malha para longe da caixa original; sem isto ela some em alguns ângulos.
+      if (object instanceof THREE.SkinnedMesh) object.frustumCulled = false
+    })
+    return scene
+  }
 
-    const ground = new THREE.Mesh(
-      new THREE.CircleGeometry(9, 48),
-      new THREE.MeshStandardMaterial({ color: 0x24211e, roughness: 1 }),
-    )
-    ground.rotation.x = -Math.PI / 2
-    this.scene.add(ground)
-
-    const moundGeometry = new THREE.IcosahedronGeometry(1, 4)
-    const position = moundGeometry.attributes.position
-    for (let i = 0; i < position.count; i++) {
-      const x = position.getX(i)
-      const y = position.getY(i)
-      const z = position.getZ(i)
-      // Mesmo ponto, mesmo deslocamento: a malha não abre ao ficar irregular.
-      const bump = Math.sin(x * 9.1 + z * 4.3) * Math.cos(z * 8.7 - y * 5.9) * 0.09 + Math.sin(x * 21 + z * 23) * 0.025
-      position.setXYZ(i, x * (1 + bump), y * (1 + bump * 1.6), z * (1 + bump))
-    }
-    moundGeometry.computeVertexNormals()
-    const mound = new THREE.Mesh(moundGeometry, ash)
-    mound.scale.set(1.05, 0.34, 1.05)
-    this.scene.add(mound)
-
-    const bones: [number, number, number, number, number][] = [
-      [-0.72, 0.13, 0.42, 0.9, 0.4],
-      [0.62, 0.12, 0.55, -0.7, 1.2],
-      [0.3, 0.2, 0.72, 1.3, -0.5],
-      [-0.25, 0.17, 0.78, -1.2, 2.3],
-      [0.82, 0.08, -0.1, 0.4, 0.7],
-    ]
-    for (const [x, y, z, tilt, turn] of bones) {
-      const piece = new THREE.Mesh(new THREE.CapsuleGeometry(0.035, 0.42, 2, 6), bone)
-      piece.position.set(x, y, z)
-      piece.rotation.set(tilt, turn, Math.PI / 2 - tilt * 0.3)
-      this.scene.add(piece)
-    }
-
-    // A espada fica levemente inclinada, cravada no meio das cinzas.
-    const sword = new THREE.Group()
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.085, 1.5, 0.022), iron)
-    blade.position.y = 0.6
-    const guard = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.05, 0.06), iron)
-    guard.position.y = 1.37
-    const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.3, 6), iron)
-    grip.position.y = 1.54
-    const pommel = new THREE.Mesh(new THREE.IcosahedronGeometry(0.048, 0), iron)
-    pommel.position.y = 1.72
-    sword.add(blade, guard, grip, pommel)
-    sword.position.set(0.02, 0.05, 0)
-    sword.rotation.set(0.05, 0.5, -0.09)
-    this.scene.add(sword)
+  private async load() {
+    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
+    const [bonfire, knight] = await Promise.all([
+      this.loadModel(loader, BONFIRE_URL, BONFIRE_SIZE),
+      this.loadModel(loader, KNIGHT_URL, KNIGHT_SIZE),
+    ])
+    if (this.disposed) return
+    this.scene.add(bonfire)
+    this.knight.add(knight)
+    this.knight.position.set(0, 0, -2.2)
+    if (this.reducedMotion) this.update(STILL_TIME)
+    this.render()
   }
 
   private resize() {
@@ -142,8 +145,8 @@ export class BonfireStage {
     this.renderer.setSize(width, height)
     const aspect = width / height
     const tangent = Math.tan(THREE.MathUtils.degToRad(FOV / 2))
-    // Afasta a câmera em telas estreitas para o monte de cinzas continuar inteiro.
-    const distance = Math.max(5.2, 2.7 / (2 * tangent * aspect))
+    // Afasta a câmera em telas estreitas para a fogueira e a espada do cavaleiro continuarem inteiras.
+    const distance = Math.max(6, 3.5 / (2 * tangent * aspect))
     this.camera.aspect = aspect
     this.camera.position.set(0, 1.25, distance)
     this.camera.lookAt(0, 1, 0)

@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { Avatar3D } from '../components/three/Avatar3D'
 import { Bonfire3D } from '../components/three/Bonfire3D'
 import { BonfireMenu } from '../components/ui/BonfireMenu'
-import { STATUS_ROWS } from '../data/about'
+import { MODEL_CREDITS, STATUS_ROWS } from '../data/about'
 import { SITE_OWNER } from '../data/navigation'
 import { playCrackle } from '../lib/crackle'
 
@@ -96,6 +96,14 @@ export function About({ reducedMotion }: AboutProps) {
         )}
 
         {menuOpen && <BonfireMenu onClose={closeMenu} />}
+
+        <p className="absolute top-24 right-6 left-6 text-right font-mono text-[10px] leading-relaxed opacity-40 lg:right-20">
+          {MODEL_CREDITS.map((credit) => (
+            <a key={credit.url} href={credit.url} target="_blank" rel="noreferrer" className="block hover:underline">
+              {credit.title} · {credit.author} · CC BY 4.0
+            </a>
+          ))}
+        </p>
       </div>
     </section>
   )
