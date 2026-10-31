@@ -1,5 +1,8 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/inter-tight';
+@import '@fontsource-variable/space-grotesk';
+@import '@fontsource/press-start-2p';
+@import '@fontsource/vt323';
+@import '@fontsource/special-elite';
 
 @font-face {
   font-family: 'Sanguine Frost';
@@ -10,12 +13,17 @@
 /* Tokens do tema — use como classes do Tailwind: bg-ink, text-paper, font-gothic... */
 @theme {
   --color-ink: #000000;
+  --color-night: #11131a;
+  --color-coal: #0a0a0a;
   --color-paper: #ededed;
   --color-line: rgb(255 255 255 / 0.06);
   --color-ember: #f0924a;
 
-  --font-sans: 'Inter Tight Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Space Grotesk Variable', ui-sans-serif, system-ui, sans-serif;
   --font-gothic: 'Sanguine Frost', serif;
+  --font-pixel: 'Press Start 2P', monospace;
+  --font-terminal: 'VT323', monospace;
+  --font-typewriter: 'Special Elite', monospace;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
@@ -25,6 +33,16 @@
   --animate-roll: roll 5.5s linear infinite;
   --animate-flicker: flicker 4s steps(1) infinite;
   --animate-marquee: marquee 18s linear infinite;
+  --animate-page-in: page-in 0.7s ease-out both;
+
+  @keyframes page-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
 
   @keyframes marquee {
     from {
@@ -69,7 +87,7 @@
 
 @layer base {
   html {
-    background: var(--color-ink);
+    background: var(--color-night);
     color: var(--color-paper);
     -webkit-font-smoothing: antialiased;
   }

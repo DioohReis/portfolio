@@ -299,19 +299,24 @@ export class ParticleField {
     const ctx = off.getContext('2d', { willReadFrequently: true })
     if (!ctx) return
 
+    // O avatar divide a tela com o texto: fica à direita na tela deitada e embaixo na tela em pé.
+    const landscape = W > H
+    const maxWidth = W * (landscape ? 0.56 : 0.86)
+    const centerX = W * (landscape ? 0.33 : 0.5)
+    const centerY = H * (landscape ? 0.52 : 0.3)
     const lineHeight = 1.02
-    let fontSize = Math.min((H * 0.68) / (lines.length * lineHeight), W * 0.24)
+    let fontSize = Math.min((H * (landscape ? 0.68 : 0.4)) / (lines.length * lineHeight), W * 0.24)
     ctx.font = `${fontSize}px "${fontFamily}"`
     const widest = Math.max(...lines.map((l) => ctx.measureText(l).width))
-    if (widest > W * 0.86) {
-      fontSize *= (W * 0.86) / widest
+    if (widest > maxWidth) {
+      fontSize *= maxWidth / widest
       ctx.font = `${fontSize}px "${fontFamily}"`
     }
     ctx.fillStyle = '#fff'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     lines.forEach((line, i) => {
-      ctx.fillText(line, W / 2, H * 0.52 + (i - (lines.length - 1) / 2) * fontSize * lineHeight)
+      ctx.fillText(line, centerX, centerY + (i - (lines.length - 1) / 2) * fontSize * lineHeight)
     })
 
     const data = ctx.getImageData(0, 0, W, H).data
@@ -537,11 +542,7 @@ export class ParticleField {
     this.tiltY += (targetY - this.tiltY) * TILT_EASE
     this.tiltEuler.set(this.tiltY * TILT_MAX_RAD, this.tiltX * TILT_MAX_RAD, 0)
     this.tiltRotation.makeRotationFromEuler(this.tiltEuler)
-    this.points.matrix
-      .copy(this.fromCenter)
-      .multiply(this.tiltRotation)
-      .multiply(this.flipY)
-      .multiply(this.toCenter)
+    this.points.matrix.copy(this.fromCenter).multiply(this.tiltRotation).multiply(this.flipY).multiply(this.toCenter)
     this.points.matrixWorldNeedsUpdate = true
   }
 
