@@ -12,7 +12,7 @@
 /* Tokens do tema — use como classes do Tailwind: bg-ink, text-paper, font-gothic... */
 @theme {
   --color-ink: #000000;
-  --color-night: #0b1120;
+  --color-night: #11131a;
   --color-paper: #ededed;
   --color-line: rgb(255 255 255 / 0.06);
   --color-ember: #f0924a;

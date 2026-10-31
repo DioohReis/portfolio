@@ -121,7 +121,7 @@ export class CartridgeStage {
     if (!width || !height) return
     this.renderer.setSize(width, height)
     const aspect = width / height
-    const visible = Math.max(1.75, 2.4 / aspect)
+    const visible = Math.max(1.5, 2.2 / aspect)
     this.camera.aspect = aspect
     this.camera.position.set(0, 0, visible / 2 / Math.tan(THREE.MathUtils.degToRad(FOV / 2)))
     this.camera.updateProjectionMatrix()
