@@ -132,12 +132,12 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
           <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-linear-to-t from-night to-transparent" />
 
           <div
-            className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-10 ${
+            className={`pointer-events-none absolute top-24 left-6 [text-shadow:0_2px_12px_rgb(0_0_0/0.9)] transition-opacity duration-500 lg:top-28 lg:left-10 ${
               active !== null ? 'opacity-0' : 'opacity-100'
             }`}
           >
             <p className="text-xs opacity-60">{'{ menu }'}</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-[-0.03em] lg:text-6xl">Fogueira</h2>
+            <h2 className="mt-2 text-4xl font-semibold tracking-[-0.03em] 2xl:text-6xl">Fogueira</h2>
             <p className="mt-2 max-w-52 text-sm opacity-60">Aproxime-se de cada elemento e clique para entrar.</p>
           </div>
 
@@ -174,7 +174,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
 
           <p
             aria-hidden="true"
-            className={`pointer-events-none absolute top-24 left-6 transition-opacity duration-500 lg:top-28 lg:left-10 ${
+            className={`pointer-events-none absolute top-24 left-6 [text-shadow:0_2px_12px_rgb(0_0_0/0.9)] transition-opacity duration-500 lg:top-28 lg:left-10 ${
               active !== null ? 'opacity-100' : 'opacity-0'
             }`}
           >
