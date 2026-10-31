@@ -35,16 +35,6 @@ export const QUALITIES = [
   { name: 'Força de vontade', description: 'Continuo até sair o melhor que eu consigo.' },
 ]
 
-/** Guardado para a futura seção de skills; ainda não aparece no site. */
-export const SKILL_GROUPS = [
-  { name: 'Front-end', items: ['React', 'TypeScript', 'JavaScript', 'Next.js', 'Vite', 'Tailwind CSS'] },
-  { name: 'Back-end', items: ['Java', 'Spring Boot', 'Python', 'FastAPI', 'APIs REST'] },
-  { name: 'Dados', items: ['SQL', 'SQLAlchemy', 'SQLite', 'H2', 'Modelagem relacional'] },
-  { name: '3D e IA', items: ['Three.js', 'WebGL', 'Gemini'] },
-  { name: 'Qualidade', items: ['Git Flow', 'Revisão de PRs', 'Acessibilidade', 'Documentação'] },
-  { name: 'Idiomas', items: ['Inglês intermediário', 'Alemão intermediário'] },
-]
-
 export const SOCIAL_LINKS = [
   { label: 'GitHub', href: 'https://github.com/DioohReis' },
   { label: 'LinkedIn', href: 'https://www.linkedin.com/in/diogo-guilherme-de-assis-reis-002bb6208/' },

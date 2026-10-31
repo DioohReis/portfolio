@@ -1,5 +1,6 @@
 import { Cartridge3D } from '../components/three/Cartridge3D'
 import { Gameboy3D } from '../components/three/Gameboy3D'
+import { Skills } from './Skills'
 import { ABOUT, CARTRIDGE_LABEL, CLOSING, QUALITIES, SOCIAL_LINKS, TICKETS } from '../data/about'
 
 interface AboutProps {
@@ -139,6 +140,8 @@ export function About({ reducedMotion }: AboutProps) {
           Coming soon
         </p>
       </div>
+
+      <Skills reducedMotion={reducedMotion} />
     </section>
   )
 }

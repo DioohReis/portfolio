@@ -2,6 +2,7 @@
 @import '@fontsource-variable/space-grotesk';
 @import '@fontsource/press-start-2p';
 @import '@fontsource/vt323';
+@import '@fontsource/special-elite';
 
 @font-face {
   font-family: 'Sanguine Frost';
@@ -21,6 +22,7 @@
   --font-gothic: 'Sanguine Frost', serif;
   --font-pixel: 'Press Start 2P', monospace;
   --font-terminal: 'VT323', monospace;
+  --font-typewriter: 'Special Elite', monospace;
   --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
 
   --ease-out-soft: cubic-bezier(0.33, 1, 0.68, 1);
