@@ -47,7 +47,7 @@ export class AvatarStage {
   constructor(container: HTMLElement, options: AvatarStageOptions) {
     this.container = container
     this.options = options
-    this.renderer =new THREE.WebGLRenderer({ alpha: true, antialias: true })
+    this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     container.appendChild(this.renderer.domElement)
     this.renderer.domElement.style.display = 'block'
