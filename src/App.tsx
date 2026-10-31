@@ -16,7 +16,7 @@ import { Projects } from './sections/Projects'
 /** Páginas além da inicial, pelo caminho. */
 const PAGES: Record<string, (props: { reducedMotion: boolean }) => ReactElement> = {
   '/sobre': ({ reducedMotion }) => <About reducedMotion={reducedMotion} />,
-  '/projetos': () => <Projects />,
+  '/projetos': ({ reducedMotion }) => <Projects reducedMotion={reducedMotion} />,
   '/certificados': () => <Certificates />,
   '/contato': () => <Contact />,
 }
