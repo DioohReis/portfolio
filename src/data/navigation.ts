@@ -31,8 +31,8 @@ export interface BonfireSpot {
 
 /** Opções do menu da fogueira: cada ponto da cena leva a uma seção. */
 export const BONFIRE_SPOTS: BonfireSpot[] = [
-  { id: 'sobre', label: 'Sobre', anchor: [-1.9, 1.75, -0.9], target: 'Artorias' },
-  { id: 'projetos', label: 'Projetos', anchor: [1.9, 1.75, -0.9], target: 'Ornstein' },
+  { id: 'sobre', label: 'Sobre', anchor: [-2.65, 1.75, -0.9], target: 'Artorias' },
+  { id: 'projetos', label: 'Projetos', anchor: [2.85, 1.75, -0.9], target: 'Ornstein' },
   { id: 'certificados', label: 'Certificados', anchor: [0.8, 0.45, 0.3], target: 'bonfire' },
   { id: 'contato', label: 'Contato', anchor: [0.5, 1.75, -2.2], target: 'Sif' },
 ]
