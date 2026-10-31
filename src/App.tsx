@@ -4,6 +4,7 @@ import { Header } from './components/layout/Header'
 import { LenisContext, useCreateLenis } from './hooks/useLenis'
 import { useReducedMotion } from './hooks/useReducedMotion'
 import { About } from './sections/About'
+import { Bonfire } from './sections/Bonfire'
 import { Certificates } from './sections/Certificates'
 import { Contact } from './sections/Contact'
 import { Home } from './sections/Home'
@@ -53,7 +54,8 @@ export default function App() {
       <Header hidden={!started} />
       <main>
         <Home started={started} reducedMotion={reducedMotion} onParticlesReady={handleParticlesReady} />
-        <About reducedMotion={reducedMotion} />
+        <Bonfire reducedMotion={reducedMotion} />
+        <About />
         <Projects />
         <Certificates />
         <Contact />

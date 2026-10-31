@@ -13,8 +13,22 @@ const KNIGHT_URL = '/models/artorias.glb'
 const BONFIRE_SIZE = 3
 const KNIGHT_SIZE = 3.2
 
+export interface StagePoint {
+  x: number
+  y: number
+}
+
+interface BonfireStageOptions {
+  reducedMotion: boolean
+  /** Pontos da cena que precisam de uma etiqueta por cima. */
+  anchors: [number, number, number][]
+  /** Devolve onde cada ponto cai na tela, em pixels; muda só quando a tela muda de tamanho. */
+  onProject: (points: StagePoint[]) => void
+  onLoaded: () => void
+}
+
 /**
- * Fogueira do Sobre (classe, sem React). O fogo e as brasas são feitos em shader, sobre o modelo da
+ * Fogueira do menu (classe, sem React). O fogo e as brasas são feitos em shader, sobre o modelo da
  * fogueira; Artorias e Sif ficam ao lado, iluminados por ela.
  * Só desenha enquanto está visível.
  */
@@ -30,15 +44,17 @@ export class BonfireStage {
   private visibilityObserver: IntersectionObserver
   private container: HTMLElement
   private reducedMotion: boolean
+  private options: BonfireStageOptions
   private frame = 0
   private visible = false
   private disposed = false
   private heat = 0
   private heatTarget = 0
 
-  constructor(container: HTMLElement, reducedMotion: boolean) {
+  constructor(container: HTMLElement, options: BonfireStageOptions) {
     this.container = container
-    this.reducedMotion = reducedMotion
+    this.options = options
+    this.reducedMotion = options.reducedMotion
     this.renderer = new THREE.WebGLRenderer({ antialias: true })
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     this.renderer.setClearColor(0x000000)
@@ -137,6 +153,7 @@ export class BonfireStage {
     this.knight.position.set(0, 0, -2.2)
     if (this.reducedMotion) this.update(STILL_TIME)
     this.render()
+    this.options.onLoaded()
   }
 
   private resize() {
@@ -146,11 +163,18 @@ export class BonfireStage {
     const aspect = width / height
     const tangent = Math.tan(THREE.MathUtils.degToRad(FOV / 2))
     // Afasta a câmera em telas estreitas para a fogueira e a espada do cavaleiro continuarem inteiras.
-    const distance = Math.max(6, 3.5 / (2 * tangent * aspect))
+    const distance = Math.max(6.6, 3.5 / (2 * tangent * aspect))
     this.camera.aspect = aspect
     this.camera.position.set(0, 1.25, distance)
     this.camera.lookAt(0, 1, 0)
     this.camera.updateProjectionMatrix()
+    this.camera.updateMatrixWorld()
+    this.options.onProject(
+      this.options.anchors.map(([x, y, z]) => {
+        const point = new THREE.Vector3(x, y, z).project(this.camera)
+        return { x: ((point.x + 1) / 2) * width, y: ((1 - point.y) / 2) * height }
+      }),
+    )
     const scale = (height * this.renderer.getPixelRatio()) / (2 * tangent)
     this.flames.uniforms.uScale.value = scale
     this.embers.uniforms.uScale.value = scale

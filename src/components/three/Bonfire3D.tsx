@@ -1,14 +1,17 @@
 import { useEffect, useRef } from 'react'
-import type { BonfireStage } from '../../lib/bonfire/BonfireStage'
+import type { BonfireStage, StagePoint } from '../../lib/bonfire/BonfireStage'
 
 interface Bonfire3DProps {
   /** Mouse em cima ou foco do teclado: o fogo cresce. */
   hot: boolean
   reducedMotion: boolean
+  anchors: [number, number, number][]
+  onProject: (points: StagePoint[]) => void
+  onLoaded: () => void
   className?: string
 }
 
-export function Bonfire3D({ hot, reducedMotion, className = '' }: Bonfire3DProps) {
+export function Bonfire3D({ hot, reducedMotion, anchors, onProject, onLoaded, className = '' }: Bonfire3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<BonfireStage | null>(null)
   const hotRef = useRef(hot)
@@ -25,7 +28,7 @@ export function Bonfire3D({ hot, reducedMotion, className = '' }: Bonfire3DProps
         observer.disconnect()
         import('../../lib/bonfire/BonfireStage').then(({ BonfireStage }) => {
           if (cancelled) return
-          stageRef.current = new BonfireStage(container, reducedMotion)
+          stageRef.current = new BonfireStage(container, { reducedMotion, anchors, onProject, onLoaded })
           stageRef.current.setHot(hotRef.current)
         })
       },
@@ -39,7 +42,7 @@ export function Bonfire3D({ hot, reducedMotion, className = '' }: Bonfire3DProps
       stageRef.current?.dispose()
       stageRef.current = null
     }
-  }, [reducedMotion])
+  }, [reducedMotion, anchors, onProject, onLoaded])
 
   useEffect(() => {
     hotRef.current = hot

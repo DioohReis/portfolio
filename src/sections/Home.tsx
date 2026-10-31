@@ -1,3 +1,4 @@
+import { Avatar3D } from '../components/three/Avatar3D'
 import { ParticleText } from '../components/three/ParticleText'
 import { HERO_LINES } from '../data/navigation'
 
@@ -12,6 +13,21 @@ export function Home({ started, reducedMotion, onParticlesReady }: HomeProps) {
     <section id="home" className="relative h-svh overflow-hidden" aria-label="Início">
       <h1 className="sr-only">Diogo A Reis — Start Hello World</h1>
       <ParticleText lines={HERO_LINES} started={started} reducedMotion={reducedMotion} onReady={onParticlesReady} />
+      <div
+        className={`absolute inset-x-0 bottom-0 h-[58%] transition-opacity delay-700 duration-1000 landscape:inset-x-auto landscape:top-0 landscape:right-[3%] landscape:h-full landscape:w-[44%] ${
+          started ? 'opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+      >
+        <Avatar3D url="/models/diogo.glb" reducedMotion={reducedMotion} className="cursor-pointer">
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-1/5 bg-linear-to-t from-ink to-transparent" />
+          <button
+            type="button"
+            className="absolute right-0 bottom-7 hidden cursor-pointer font-mono text-xs opacity-60 transition-opacity hover:opacity-100 landscape:block"
+          >
+            {'{ clique para girar }'}
+          </button>
+        </Avatar3D>
+      </div>
       <p
         className={`pointer-events-none absolute bottom-7 left-1/2 -translate-x-1/2 text-[13px] tracking-[0.06em] whitespace-nowrap transition-opacity delay-500 duration-1000 ${
           started ? 'opacity-45' : 'opacity-0'
