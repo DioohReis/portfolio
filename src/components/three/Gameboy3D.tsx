@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { GameboyStage } from '../../lib/gameboy/GameboyStage'
+import { announceSceneReady } from '../../lib/sceneReady'
 
 interface Gameboy3DProps {
   reducedMotion: boolean
@@ -23,7 +24,10 @@ export function Gameboy3D({ reducedMotion, className = '' }: Gameboy3DProps) {
         observer.disconnect()
         import('../../lib/gameboy/GameboyStage').then(({ GameboyStage }) => {
           if (cancelled) return
-          stageRef.current = new GameboyStage(container, reducedMotion, () => setLoaded(true))
+          stageRef.current = new GameboyStage(container, reducedMotion, () => {
+            setLoaded(true)
+            announceSceneReady()
+          })
         })
       },
       { rootMargin: '100% 0px' },
