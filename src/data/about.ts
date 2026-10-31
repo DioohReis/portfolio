@@ -13,10 +13,10 @@ export const ABOUT = {
 /** Texto do rótulo do cartucho 3D. */
 export const CARTRIDGE_LABEL = { title: ABOUT.noteTitle, text: ABOUT.note }
 
-/** Ingressos com o que já construí. */
+/** Cartões micro-SD com o que já construí. */
 export const TICKETS = ['Interfaces', 'APIs', '3D na web', 'Projetos com IA']
 
-/** Fechamento do Sobre: a frase de destaque e o bilhete colado. */
+/** Fechamento do Sobre: a frase de destaque e o bilhete da etiqueta do SSD. */
 export const CLOSING = {
   intro:
     'Já criei interfaces, APIs, experiências em 3D e projetos com IA. No caminho, percebi que o que mais me move é começar sem saber a resposta:',
@@ -42,6 +42,16 @@ export const SOCIAL_LINKS = [
 
 /** Créditos dos modelos 3D da fogueira (licença CC BY 4.0, exige citar autor e fonte). */
 export const MODEL_CREDITS = [
+  {
+    title: 'Micro SD card',
+    author: 'struffelproductions',
+    url: 'https://sketchfab.com/3d-models/micro-sd-card-5c644bbee2b548e68df5168e780cb060',
+  },
+  {
+    title: 'NVME SSD 2280',
+    author: 'TDD',
+    url: 'https://sketchfab.com/3d-models/nvme-ssd-2280-3d478ac74728408890c2a03363138375',
+  },
   {
     title: 'Pokemon Cartridge Gameboy',
     author: 'thegraphicsgeek',

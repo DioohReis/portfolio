@@ -1,7 +1,14 @@
 import { Cartridge3D } from '../components/three/Cartridge3D'
 import { Gameboy3D } from '../components/three/Gameboy3D'
+import { Storage3D } from '../components/three/Storage3D'
 import { Skills } from './Skills'
 import { ABOUT, CARTRIDGE_LABEL, CLOSING, QUALITIES, SOCIAL_LINKS, TICKETS } from '../data/about'
+
+const loadCards = () => import('../lib/storage/microSdCards').then(({ microSdCards }) => microSdCards(TICKETS))
+const loadNote = () =>
+  import('../lib/storage/nvmeNote').then(({ nvmeNote }) =>
+    nvmeNote({ before: CLOSING.noteBefore, circled: CLOSING.noteCircled, after: CLOSING.noteAfter }),
+  )
 
 interface AboutProps {
   reducedMotion: boolean
@@ -54,22 +61,15 @@ export function About({ reducedMotion }: AboutProps) {
             </article>
           </div>
 
-          {/* Ingressos: os recortes laterais vêm de uma máscara. */}
-          <ul className="mt-12 flex flex-wrap gap-3">
-            {TICKETS.map((ticket, index) => (
-              <li
-                key={ticket}
-                style={{ rotate: `${index % 2 === 0 ? -1.5 : 1.5}deg` }}
-                className={`flex items-center gap-3 px-5 py-2.5 text-night [mask-image:radial-gradient(circle_8px_at_0_50%,transparent_98%,#000),radial-gradient(circle_8px_at_100%_50%,transparent_98%,#000)] [mask-composite:intersect] ${
-                  index % 2 === 0 ? 'bg-[#a9c48a]' : 'bg-[#e8a0b6]'
-                }`}
-              >
-                <span className="text-xl font-semibold">{String(index + 1).padStart(2, '0')}</span>
-                <span className="h-5 border-l border-dashed border-night/50" />
-                <span className="text-xs font-medium tracking-[0.14em] uppercase">{ticket}</span>
-              </li>
-            ))}
-          </ul>
+          {/* Cartões micro-SD com o que já construí. */}
+          <div className="relative mt-12 aspect-3/4 w-full max-w-xl sm:aspect-3/1 sm:max-w-none">
+            <Storage3D loadModel={loadCards} reducedMotion={reducedMotion} className="absolute inset-0" />
+            <ul className="sr-only">
+              {TICKETS.map((ticket) => (
+                <li key={ticket}>{ticket}</li>
+              ))}
+            </ul>
+          </div>
 
           <p className="mt-8 max-w-xl text-lg leading-snug opacity-65">{CLOSING.intro}</p>
           <p className="mt-3 text-[clamp(30px,3.6vw,52px)] leading-tight font-medium tracking-[-0.03em]">
@@ -79,33 +79,13 @@ export function About({ reducedMotion }: AboutProps) {
             {CLOSING.tag}
           </p>
 
-          {/* Bilhete colado com fita. */}
-          <div className="relative mt-10 max-w-2xl rotate-1 bg-[#f3e8b8] px-8 py-7 text-lg leading-relaxed text-night shadow-[0_12px_30px_rgb(0_0_0/0.4)]">
-            <span className="absolute -top-3 left-6 h-6 w-24 -rotate-3 bg-paper/45" />
-            <span className="absolute -top-3 right-6 h-6 w-24 rotate-3 bg-paper/45" />
-            {CLOSING.noteBefore}{' '}
-            <span className="relative mx-1 inline-block px-2 text-2xl font-medium whitespace-nowrap">
-              {CLOSING.noteCircled}
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 100 40"
-                preserveAspectRatio="none"
-                className="pointer-events-none absolute -inset-x-1 -inset-y-1 h-[calc(100%+8px)] w-[calc(100%+8px)] overflow-visible"
-              >
-                <ellipse
-                  cx="50"
-                  cy="20"
-                  rx="49"
-                  ry="18"
-                  fill="none"
-                  stroke="#2f6f5e"
-                  strokeWidth="1.5"
-                  vectorEffect="non-scaling-stroke"
-                />
-              </svg>
-            </span>{' '}
-            {CLOSING.noteAfter}
+          {/* SSD com o bilhete na etiqueta; no celular a etiqueta ficaria miúda, então o texto vem embaixo. */}
+          <div className="relative mt-10 aspect-3/1 w-full">
+            <Storage3D loadModel={loadNote} reducedMotion={reducedMotion} className="absolute inset-0" />
           </div>
+          <p className="mt-2 text-lg leading-relaxed opacity-80 sm:sr-only">
+            {CLOSING.noteBefore} {CLOSING.noteCircled} {CLOSING.noteAfter}
+          </p>
 
           <ul className="mt-14 grid gap-px border-y border-paper/15 sm:grid-cols-3">
             {QUALITIES.map((quality, index) => (

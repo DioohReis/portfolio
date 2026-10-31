@@ -22,18 +22,20 @@ const BONFIRE_SIZE = 3.2
 const ROOM_POSITION = new THREE.Vector3(0.4, -0.9, -0.1)
 /** Onde cada personagem fica: nome do nó no modelo, altura, posição no chão e giro (radianos). */
 const FIGURES = [
-  { name: 'Artorias', height: 3.6, x: -1.9, z: -0.9, turn: 0.15 },
+  { name: 'Artorias', height: 3.6, x: -2.65, z: -0.9, turn: 0.8 },
   { name: 'Sif', height: 2.1, x: -0.1, z: -2.2, turn: -0.7 },
 ]
 /** Em tela em pé os personagens chegam mais perto da fogueira, para todos caberem. */
-const NARROW_SPREAD = 0.68
+const NARROW_SPREAD = 0.45
+/** A partir desta proporção de tela os personagens ficam bem afastados; abaixo, chegam mais perto aos poucos. */
+const FULL_SPREAD_ASPECT = 1.7
 /** Giro que deixa a cabeça do Artorias reta, olhando para a frente (no modelo ela olha para o lado). */
-const KNIGHT_HEAD = { bone: 'Head_067', turn: new THREE.Euler(-0.2, 0.7, 0) }
-const SPEAR_KNIGHT = { height: 3.5, x: 1.9, z: -0.9, turn: 0 }
+const KNIGHT_HEAD = { bone: 'Head_067', turn: new THREE.Euler(-0.2, 0.25, 0) }
+const SPEAR_KNIGHT = { height: 3.5, x: 2.85, z: -0.9, turn: -0.25 }
 /** Aonde a câmera vai quando cada elemento ganha destaque: posição e ponto para onde olha. */
 const VIEWS: Record<string, { position: THREE.Vector3; look: THREE.Vector3 }> = {
-  Artorias: { position: new THREE.Vector3(-1.6, 2.7, 1.6), look: new THREE.Vector3(-1.9, 2.6, -0.9) },
-  Ornstein: { position: new THREE.Vector3(1.6, 2.7, 1.6), look: new THREE.Vector3(1.9, 2.6, -0.9) },
+  Artorias: { position: new THREE.Vector3(-2.2, 2.7, 1.6), look: new THREE.Vector3(-2.65, 2.6, -0.9) },
+  Ornstein: { position: new THREE.Vector3(2.4, 2.7, 1.6), look: new THREE.Vector3(2.85, 2.6, -0.9) },
   Sif: { position: new THREE.Vector3(-0.2, 1.7, 0.8), look: new THREE.Vector3(-1, 1.35, -2.2) },
   bonfire: { position: new THREE.Vector3(0.2, 1.5, 2.7), look: new THREE.Vector3(0, 0.8, 0) },
 }
@@ -238,7 +240,7 @@ export class BonfireStage {
     if (!width || !height) return
     this.renderer.setSize(width, height)
     const aspect = width / height
-    this.spread = aspect < 0.8 ? NARROW_SPREAD : 1
+    this.spread = aspect < 0.8 ? NARROW_SPREAD : Math.min(aspect / FULL_SPREAD_ASPECT, 1)
     for (const figure of this.figures) figure.group.position.x = figure.x * this.spread
     // A câmera fica presa dentro do salão: em tela estreita, abre o ângulo em vez de se afastar.
     const tangent = Math.max(Math.tan(THREE.MathUtils.degToRad(FOV / 2)), FIT_TANGENT / aspect)
