@@ -1,13 +1,14 @@
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
+import { createLightningSpear, paintDragon } from './paintDragon'
 
-const AVATAR_URL = '/models/diogo.glb'
+const DRAGON_URL = '/models/fortissax.glb'
 const FOV = 34
 const RADIUS = 3
 const PANEL_WIDTH = 3.15
 const PANEL_HEIGHT = 1.97
-/** O projeto ativo descansa um pouco à esquerda, deixando o avatar à mostra. */
+/** O projeto ativo descansa um pouco à esquerda, deixando o dragão à mostra. */
 const REST_ANGLE = 0.72
 const EASE = 0.07
 const DUST_COUNT = 140
@@ -71,7 +72,7 @@ function arcGeometry(radius: number, width: number, height: number) {
 }
 
 /**
- * Carrossel dos projetos (classe, sem React): telas curvas girando em volta do avatar, entre partículas.
+ * Carrossel dos projetos (classe, sem React): telas curvas girando em volta do dragão, entre partículas.
  * Arrastar ou rolar gira o anel; ao soltar, ele encaixa no projeto mais próximo.
  * Só desenha enquanto está visível.
  */
@@ -81,6 +82,9 @@ export class ProjectsStage {
   private camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 60)
   private ring = new THREE.Group()
   private figure = new THREE.Group()
+  private spear = createLightningSpear(4.6)
+  private spearLight = new THREE.PointLight(0xff2a18, 4, 6, 1.8)
+  private dragonTime: { value: number } | null = null
   private panels: Panel[] = []
   private dust: THREE.Points
   private raycaster = new THREE.Raycaster()
@@ -116,17 +120,17 @@ export class ProjectsStage {
     })
     container.appendChild(this.renderer.domElement)
 
-    // O anel fica levemente inclinado, com a frente mais baixa, para não tapar o rosto do avatar.
+    // O anel fica levemente inclinado, com a frente mais baixa, para não tapar a cabeça do dragão.
     this.ring.position.y = -0.7
     this.ring.rotation.x = 0.1
     this.ring.rotation.z = -0.05
-    const rimLeft = new THREE.DirectionalLight(0xff3a22, 7)
+    const rimLeft = new THREE.DirectionalLight(0xc8d0e0, 1.6)
     rimLeft.position.set(-3, 2, -3)
-    const rimRight = new THREE.DirectionalLight(0xff5a2a, 7)
+    const rimRight = new THREE.DirectionalLight(0xffc890, 1.4)
     rimRight.position.set(3, 2, -3)
-    const front = new THREE.DirectionalLight(0xffe8e0, 0.7)
+    const front = new THREE.DirectionalLight(0xfff0e4, 1)
     front.position.set(0, 2, 5)
-    this.scene.add(new THREE.HemisphereLight(0x9a8a90, 0x100808, 0.5), rimLeft, rimRight, front, this.ring, this.figure)
+    this.scene.add(new THREE.HemisphereLight(0xb8bcc4, 0x141414, 0.6), rimLeft, rimRight, front, this.ring, this.figure)
 
     this.dust = createDust()
     this.scene.add(this.dust)
@@ -187,25 +191,24 @@ export class ProjectsStage {
   private async load() {
     const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
     const textureLoader = new THREE.TextureLoader()
-    const [{ scene: avatar }, ...textures] = await Promise.all([
-      loader.loadAsync(AVATAR_URL),
+    const [{ scene: dragon }, ...textures] = await Promise.all([
+      loader.loadAsync(DRAGON_URL),
       ...this.options.covers.map((url) => textureLoader.loadAsync(url)),
     ])
     if (this.disposed) return
 
-    // O avatar fica escuro, só com o contorno aceso, e termina na cintura abaixo da tela.
-    const meshes: THREE.Mesh[] = []
-    avatar.traverse((object) => {
-      if (object instanceof THREE.Mesh) meshes.push(object)
-    })
-    for (const mesh of meshes) {
-      ;(mesh.material as THREE.MeshStandardMaterial).color.setScalar(0.32)
-      mesh.add(new THREE.Mesh(mesh.geometry, createShellMaterial(0.012, 0.9)))
-      mesh.add(new THREE.Mesh(mesh.geometry, createShellMaterial(0.03, 0.28)))
-    }
-    avatar.scale.setScalar(2.1)
-    avatar.position.y = -3.3
-    this.figure.add(avatar)
+    // Voando em direção à câmera, com o peito erguido, atrás do anel de telas.
+    dragon.rotation.x = -0.72
+    dragon.scale.setScalar(5.2)
+    dragon.position.set(0, -2.35, -1.6)
+    this.dragonTime = paintDragon(dragon, new THREE.Vector3(0, 0.3, 0.17))
+
+    this.spear.rotation.set(0, 0, 0.5)
+    this.spear.position.set(-0.45, -1.15, 1.1)
+    this.figure.add(this.spear)
+    this.spearLight.position.set(-0.3, -0.9, 1.6)
+    this.figure.add(this.spearLight)
+    this.figure.add(dragon)
 
     const geometry = arcGeometry(RADIUS, PANEL_WIDTH, PANEL_HEIGHT)
     const glowGeometry = arcGeometry(RADIUS - 0.02, PANEL_WIDTH * 1.14, PANEL_HEIGHT * 1.24)
@@ -350,7 +353,12 @@ export class ProjectsStage {
 
     this.ring.rotation.y = this.angle + REST_ANGLE * -1
     if (!this.options.reducedMotion) {
-      this.figure.rotation.y = Math.sin(time * 0.4) * 0.1 - speed * 2
+      this.figure.rotation.y = Math.sin(time * 0.4) * 0.05 - speed * 2
+      if (this.dragonTime) this.dragonTime.value = time
+      // O relâmpago treme e pisca sem parar.
+      const flicker = 0.82 + Math.sin(time * 31) * 0.1 + Math.sin(time * 13) * 0.08
+      ;(this.spear.material as THREE.MeshBasicMaterial).opacity = flicker
+      this.spearLight.intensity = 4 * flicker
       this.figure.position.y = Math.sin(time * 0.9) * 0.02
       this.dust.rotation.y = time * 0.015
     }
@@ -368,28 +376,6 @@ export class ProjectsStage {
   private render() {
     this.renderer.render(this.scene, this.camera)
   }
-}
-
-/** Casco do avatar: a própria malha inflada, desenhada só por dentro, faz o brilho do contorno. */
-function createShellMaterial(size: number, strength: number) {
-  return new THREE.ShaderMaterial({
-    side: THREE.BackSide,
-    transparent: true,
-    depthWrite: false,
-    blending: THREE.AdditiveBlending,
-    vertexShader: /* glsl */ `
-      void main() {
-        vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-        viewPosition.xyz += normalize(normalMatrix * normal) * ${size.toFixed(3)};
-        gl_Position = projectionMatrix * viewPosition;
-      }
-    `,
-    fragmentShader: /* glsl */ `
-      void main() {
-        gl_FragColor = vec4(vec3(1.0, 0.16, 0.08) * ${strength.toFixed(2)}, 1.0);
-      }
-    `,
-  })
 }
 
 /** Poeira flutuando em volta do anel. */

@@ -48,3 +48,10 @@ export const PROJECTS: Project[] = [
     liveUrl: 'https://triador-aiia-gemini-ux.vercel.app/',
   },
 ]
+
+/** Crédito do dragão (licença CC BY 4.0, exige citar autor e fonte). */
+export const PROJECTS_CREDIT = {
+  title: 'Lichdragon Fortissax',
+  author: 'vvmilleriii',
+  url: 'https://sketchfab.com/3d-models/lichdragon-fortissax-63e0922ae1eb4596b66788fda7c14f48',
+}

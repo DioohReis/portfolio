@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Projects3D } from '../components/three/Projects3D'
-import { PROJECTS } from '../data/projects'
+import { PROJECTS, PROJECTS_CREDIT } from '../data/projects'
 
 interface ProjectsProps {
   reducedMotion: boolean
@@ -34,6 +34,15 @@ export function Projects({ reducedMotion }: ProjectsProps) {
       <h1 className="pointer-events-none absolute top-28 left-6 text-[clamp(40px,5vw,72px)] leading-none font-semibold tracking-[-0.04em] lg:top-32 lg:left-10">
         Projetos
       </h1>
+
+      <a
+        href={PROJECTS_CREDIT.url}
+        target="_blank"
+        rel="noreferrer"
+        className="absolute top-44 left-6 text-[10px] opacity-40 hover:underline lg:top-auto lg:bottom-4 lg:left-10"
+      >
+        {PROJECTS_CREDIT.title} · {PROJECTS_CREDIT.author} · CC BY 4.0
+      </a>
 
       {/* Informações do projeto da frente. A troca reinicia o fade pela chave. */}
       <div
