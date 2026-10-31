@@ -13,7 +13,7 @@ const REACH_SECONDS = 0.9
 const HOLD_OFFSET = new THREE.Vector3(-5.5, 7.6, 8)
 const HELD_LIGHT_OFFSET = new THREE.Vector3(0, 1, 3)
 /** Intensidade da lâmpada do teto, que falha de vez em quando. */
-const LAMP_POWER = 170
+const LAMP_POWER = 230
 
 interface Logo {
   id: string
@@ -88,13 +88,13 @@ export class SkillsStage {
     container.appendChild(this.renderer.domElement)
 
     // Pouca luz, esverdeada, como um corredor de Resident Evil.
-    this.scene.fog = new THREE.Fog(0x050706, 24, 62)
+    this.scene.fog = new THREE.Fog(0x050706, 28, 76)
     this.lamp.position.set(0, 20, 6)
     const rim = new THREE.PointLight(0xc02018, 260, 40, 1.8)
     rim.position.set(ARCADE.x + 7, 12, ARCADE.z + 2)
-    const fill = new THREE.DirectionalLight(0xbcd8c8, 0.22)
+    const fill = new THREE.DirectionalLight(0xbcd8c8, 0.32)
     fill.position.set(0, 10, 30)
-    this.scene.add(this.heldLight, this.lamp, rim, fill, new THREE.HemisphereLight(0x8aa498, 0x141010, 0.14))
+    this.scene.add(this.heldLight, this.lamp, rim, fill, new THREE.HemisphereLight(0x8aa498, 0x141010, 0.26))
 
     container.addEventListener('pointermove', this.handleMove)
     container.addEventListener('pointerleave', this.handleLeave)
