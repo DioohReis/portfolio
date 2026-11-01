@@ -16,7 +16,7 @@ interface AboutProps {
 
 export function About({ reducedMotion }: AboutProps) {
   return (
-    <section id="sobre" className="bg-night">
+    <section id="sobre" className="bg-ink">
       <div className="mx-auto grid max-w-360 gap-10 px-6 pt-24 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] lg:gap-16 lg:px-20">
         {/* O Game Boy fica parado na tela enquanto os textos correm ao lado. */}
         <div className="relative h-[56svh] lg:sticky lg:top-0 lg:-mt-24 lg:h-svh">
@@ -32,7 +32,7 @@ export function About({ reducedMotion }: AboutProps) {
           <p className="mt-3 flex flex-wrap items-center gap-x-3 text-[clamp(40px,5.5vw,76px)] leading-none font-medium tracking-[-0.03em]">
             {ABOUT.accentA}
             <span className="text-ember">&</span>
-            <span className="-rotate-2 bg-paper px-3 py-1 text-[0.55em] text-night">{ABOUT.accentB}</span>
+            <span className="-rotate-2 bg-paper px-3 py-1 text-[0.55em] text-ink">{ABOUT.accentB}</span>
           </p>
 
           {/* O cartucho com o texto e o monitor antigo, lado a lado. */}
