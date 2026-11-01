@@ -137,7 +137,7 @@ export function Bonfire({ reducedMotion }: BonfireProps) {
             }`}
           >
             <p className="text-xs opacity-60">{'{ menu }'}</p>
-            <h2 className="mt-2 text-4xl font-semibold tracking-[-0.03em] 2xl:text-6xl">Fogueira</h2>
+            <h2 className="mt-2 text-4xl font-semibold tracking-[-0.03em] min-[1800px]:text-6xl">Fogueira</h2>
             <p className="mt-2 max-w-52 text-sm opacity-60">Aproxime-se de cada elemento e clique para entrar.</p>
           </div>
 

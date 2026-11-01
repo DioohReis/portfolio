@@ -20,17 +20,20 @@ const SPEAR_KNIGHT_URL = '/models/ornstein.glb'
 const BONFIRE_SIZE = 3.2
 /** Encaixa o salão: o vitral fica atrás dos personagens e o centro das cinzas, na origem. */
 const ROOM_POSITION = new THREE.Vector3(0.4, -0.9, -0.1)
-/** Onde cada personagem fica: nome do nó no modelo, altura, posição no chão e giro (radianos). */
+/**
+ * Onde cada personagem fica: nome do nó no modelo, altura, posição no chão e giro (radianos).
+ * `facing` é o giro como aparece na tela, em relação à câmera; quando existe, substitui `turn`.
+ */
 const FIGURES = [
-  { name: 'Artorias', height: 3.6, x: -2.65, z: -0.9, turn: 0.8 },
-  { name: 'Sif', height: 2.1, x: -0.1, z: -2.2, turn: -0.7 },
+  { name: 'Artorias', height: 3.6, x: -2.65, z: -0.9, turn: 0, facing: 0.8 },
+  { name: 'Sif', height: 2.1, x: -0.1, z: -2.2, turn: -0.7, facing: null },
 ]
 /** Em tela em pé os personagens chegam mais perto da fogueira, para todos caberem. */
 const NARROW_SPREAD = 0.45
 /** A partir desta proporção de tela os personagens ficam bem afastados; abaixo, chegam mais perto aos poucos. */
 const FULL_SPREAD_ASPECT = 1.7
-/** Giro que deixa a cabeça do Artorias reta, olhando para a frente (no modelo ela olha para o lado). */
-const KNIGHT_HEAD = { bone: 'Head_067', turn: new THREE.Euler(-0.2, 0.25, 0) }
+/** Onde a câmera descansa, de frente para o salão. */
+const CAMERA_REST = { x: 0.5, z: 4.6 }
 const SPEAR_KNIGHT = { height: 3.5, x: 2.85, z: -0.9, turn: -0.25 }
 /** Aonde a câmera vai quando cada elemento ganha destaque: posição e ponto para onde olha. */
 const VIEWS: Record<string, { position: THREE.Vector3; look: THREE.Vector3 }> = {
@@ -73,7 +76,7 @@ export class BonfireStage {
   private options: BonfireStageOptions
   private focusTarget: string | null = null
   /** Personagens e a posição x de cada um, para aproximá-los em tela estreita. */
-  private figures: { group: THREE.Group; x: number }[] = []
+  private figures: { group: THREE.Group; x: number; facing: number | null }[] = []
   private spread = 1
   /** 0 com a câmera no lugar de sempre, 1 com ela já perto do elemento em destaque. */
   private zoom = 0
@@ -208,12 +211,10 @@ export class BonfireStage {
       pivot.attach(node)
       pivot.scale.setScalar(figure.height / size.y)
       pivot.position.set(figure.x * this.spread, 0, figure.z)
-      this.figures.push({ group: pivot, x: figure.x })
+      this.figures.push({ group: pivot, x: figure.x, facing: figure.facing })
       pivot.rotation.y = figure.turn
       this.scene.add(pivot)
     }
-
-    straightenHead(this.scene)
 
     // A medida vem antes da pose: com a lança de pé, a caixa ficaria mais alta que o personagem.
     const spearBox = measure(spearKnight)
@@ -226,12 +227,11 @@ export class BonfireStage {
     spearPivot.attach(spearKnight)
     spearPivot.scale.setScalar(SPEAR_KNIGHT.height / spearHeight)
     spearPivot.position.set(SPEAR_KNIGHT.x * this.spread, 0, SPEAR_KNIGHT.z)
-    this.figures.push({ group: spearPivot, x: SPEAR_KNIGHT.x })
+    this.figures.push({ group: spearPivot, x: SPEAR_KNIGHT.x, facing: null })
     spearPivot.rotation.y = SPEAR_KNIGHT.turn
     this.scene.add(spearPivot)
 
-    if (this.reducedMotion) this.update(STILL_TIME)
-    this.render()
+    this.resize()
     this.options.onLoaded()
   }
 
@@ -241,7 +241,14 @@ export class BonfireStage {
     this.renderer.setSize(width, height)
     const aspect = width / height
     this.spread = aspect < 0.8 ? NARROW_SPREAD : Math.min(aspect / FULL_SPREAD_ASPECT, 1)
-    for (const figure of this.figures) figure.group.position.x = figure.x * this.spread
+    for (const figure of this.figures) {
+      const { group, facing } = figure
+      group.position.x = figure.x * this.spread
+      // Soma o ângulo até a câmera: a pose vista na tela não muda quando o personagem muda de lugar.
+      if (facing !== null) {
+        group.rotation.y = facing + Math.atan2(CAMERA_REST.x - group.position.x, CAMERA_REST.z - group.position.z)
+      }
+    }
     // A câmera fica presa dentro do salão: em tela estreita, abre o ângulo em vez de se afastar.
     const tangent = Math.max(Math.tan(THREE.MathUtils.degToRad(FOV / 2)), FIT_TANGENT / aspect)
     this.camera.fov = THREE.MathUtils.radToDeg(Math.atan(tangent)) * 2
@@ -337,15 +344,6 @@ export class BonfireStage {
   private render() {
     this.renderer.render(this.scene, this.camera)
   }
-}
-
-function straightenHead(scene: THREE.Object3D) {
-  const bone = scene.getObjectByName(KNIGHT_HEAD.bone)
-  if (!bone?.parent) return
-  scene.updateMatrixWorld(true)
-  const turn = new THREE.Quaternion().setFromEuler(KNIGHT_HEAD.turn)
-  const world = bone.getWorldQuaternion(new THREE.Quaternion()).premultiply(turn)
-  bone.quaternion.copy(bone.parent.getWorldQuaternion(new THREE.Quaternion()).invert().multiply(world))
 }
 
 /** Caixa do objeto com o esqueleto já calculado; sem isso, malhas com ossos dão uma caixa errada. */

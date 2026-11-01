@@ -5,7 +5,7 @@ import type { StorageModel } from './StorageStage'
 const FRONT = { x: 106, y: 92, width: 240, height: 250 }
 const BACK = { x: 700, y: 106, width: 260, height: 190 }
 const CARD_COLOR = '#141414'
-const BAND_COLORS = ['#a9c48a', '#e8a0b6']
+const BAND_COLORS = ['#6fbf3f', '#d8302f']
 /** A foto do cartão fica achatada na textura: 1 px na largura vale menos que 1 px na altura. */
 const STRETCH = 1.34
 
