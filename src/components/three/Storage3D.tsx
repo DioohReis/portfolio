@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
-import type { StorageModel, StorageStage } from '../../lib/storage/StorageStage'
+import { useCallback, useRef } from 'react'
+import { useNearbyStage } from '../../hooks/useNearbyStage'
+import type { StorageModel } from '../../lib/storage/StorageStage'
 
 interface Storage3DProps {
   /** Precisa ser estável entre renderizações: cada função nova recria a cena. */
@@ -10,36 +11,14 @@ interface Storage3DProps {
 
 export function Storage3D({ loadModel, reducedMotion, className = '' }: Storage3DProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const stageRef = useRef<StorageStage | null>(null)
-  const [loaded, setLoaded] = useState(false)
-
-  // O modelo só é baixado quando se aproxima da tela.
-  useEffect(() => {
-    const container = containerRef.current
-    if (!container) return
-    let cancelled = false
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (!entry.isIntersecting) return
-        observer.disconnect()
-        Promise.all([import('../../lib/storage/StorageStage'), loadModel()]).then(([{ StorageStage }, model]) => {
-          if (cancelled) return
-          stageRef.current = new StorageStage(container, model, reducedMotion, () => setLoaded(true))
-        })
-      },
-      { rootMargin: '100% 0px' },
-    )
-    observer.observe(container)
-
-    return () => {
-      cancelled = true
-      observer.disconnect()
-      stageRef.current?.dispose()
-      stageRef.current = null
-      setLoaded(false)
-    }
-  }, [loadModel, reducedMotion])
+  const create = useCallback(
+    async (container: HTMLElement, onLoaded: () => void) => {
+      const [{ StorageStage }, model] = await Promise.all([import('../../lib/storage/StorageStage'), loadModel()])
+      return new StorageStage(container, model, reducedMotion, onLoaded)
+    },
+    [loadModel, reducedMotion],
+  )
+  const { stageRef, loaded } = useNearbyStage(containerRef, create)
 
   return (
     <div

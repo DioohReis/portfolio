@@ -85,6 +85,11 @@ export class SkillsStage {
     this.renderer.domElement.addEventListener('webglcontextlost', () => {
       this.renderer.domElement.style.visibility = 'hidden'
     })
+    // O celular pode devolver o contexto depois: a cena volta a aparecer.
+    this.renderer.domElement.addEventListener('webglcontextrestored', () => {
+      this.renderer.domElement.style.visibility = ''
+      this.render()
+    })
     container.appendChild(this.renderer.domElement)
 
     // Pouca luz, esverdeada, como um corredor de Resident Evil.
@@ -145,6 +150,8 @@ export class SkillsStage {
       material.emissiveMap?.dispose()
       material.dispose()
     })
+    // Sem isto o navegador só devolve o contexto gráfico quando quiser.
+    this.renderer.forceContextLoss()
     this.renderer.dispose()
     this.renderer.domElement.remove()
   }

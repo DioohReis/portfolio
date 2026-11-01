@@ -105,6 +105,8 @@ export class GameboyStage {
       material.emissiveMap?.dispose()
       material.dispose()
     })
+    // Sem isto o navegador só devolve o contexto gráfico quando quiser.
+    this.renderer.forceContextLoss()
     this.renderer.dispose()
     this.renderer.domElement.remove()
   }

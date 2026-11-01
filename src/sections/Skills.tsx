@@ -28,7 +28,7 @@ export function Skills({ reducedMotion }: SkillsProps) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_45%,rgb(0_0_0/0.75))]" />
       <div className="pointer-events-none absolute inset-x-0 top-0 h-1/4 bg-linear-to-b from-night to-transparent" />
 
-      <div className="pointer-events-none absolute top-20 left-6 lg:top-24 lg:left-20">
+      <div className="pointer-events-none absolute top-20 left-6 [text-shadow:0_2px_10px_rgb(0_0_0/0.9)] lg:top-24 lg:left-20">
         <h2 className="font-typewriter text-4xl tracking-[0.08em] text-[#c9302a] lg:text-6xl">SKILLS</h2>
         <p className="mt-1 max-w-96 font-typewriter text-sm text-paper/70">
           Escolha um item na mesa. Ele vai pegar para você.
