@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Projects3D } from '../components/three/Projects3D'
-import { PROJECTS, PROJECTS_CREDIT } from '../data/projects'
+import { PROJECTS } from '../data/projects'
 
 interface ProjectsProps {
   reducedMotion: boolean
@@ -8,7 +8,7 @@ interface ProjectsProps {
 
 const COVERS = PROJECTS.map((project) => project.cover)
 
-/** Carrossel 3D: as telas dos projetos giram em volta do avatar. */
+/** Carrossel 3D: as telas dos projetos giram num anel. */
 export function Projects({ reducedMotion }: ProjectsProps) {
   const [active, setActive] = useState(0)
   const project = PROJECTS[active]
@@ -28,25 +28,16 @@ export function Projects({ reducedMotion }: ProjectsProps) {
         className="absolute inset-0"
       />
 
-      {/* No celular, o texto cobre a parte de baixo da cena e esconde o corte do avatar. */}
+      {/* No celular, o texto fica sobre a parte de baixo da cena. */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[56%] bg-linear-to-t from-ink from-70% to-transparent lg:hidden" />
 
-      {/* Sombra atrás do texto, para ele continuar legível sobre as asas. */}
+      {/* Sombra atrás do texto, para ele continuar legível sobre as telas. */}
       <div className="pointer-events-none absolute inset-y-0 right-0 hidden w-2/5 bg-linear-to-l from-ink from-40% via-ink/80 to-transparent lg:block" />
       <div className="pointer-events-none absolute inset-y-0 left-0 hidden w-1/4 bg-linear-to-r from-ink/70 to-transparent lg:block" />
 
       <h1 className="pointer-events-none absolute top-28 left-6 text-[clamp(40px,5vw,72px)] leading-none font-semibold tracking-[-0.04em] lg:top-32 lg:left-10">
         Projetos
       </h1>
-
-      <a
-        href={PROJECTS_CREDIT.url}
-        target="_blank"
-        rel="noreferrer"
-        className="absolute top-44 left-6 text-[10px] opacity-40 hover:underline lg:top-auto lg:bottom-4 lg:left-10"
-      >
-        {PROJECTS_CREDIT.title} · {PROJECTS_CREDIT.author} · CC BY 4.0
-      </a>
 
       {/* Seletor: mostra quantos projetos existem e leva direto a cada um. */}
       <nav
