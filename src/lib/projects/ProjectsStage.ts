@@ -1,15 +1,11 @@
 import * as THREE from 'three'
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js'
-import { paintDragon } from './paintDragon'
 
-const DRAGON_URL = '/models/fortissax.glb'
 const FOV = 34
 const RADIUS = 3.7
 const PANEL_WIDTH = 3.1
 const PANEL_HEIGHT = 1.94
-/** O projeto ativo descansa um pouco à esquerda, deixando o dragão à mostra. */
-const REST_ANGLE = 0.72
+/** Na tela deitada o anel vai um pouco para a esquerda, abrindo espaço para o texto à direita. */
+const WIDE_OFFSET = -1.2
 const EASE = 0.07
 const DUST_COUNT = 140
 /** Arraste, em pixels, a partir do qual o clique deixa de contar como clique. */
@@ -51,6 +47,8 @@ const panelFragment = /* glsl */ `
     );
     vec2 edge = abs(vUv - 0.5) * 2.0;
     float shade = 1.0 - smoothstep(0.75, 1.0, max(edge.x, edge.y)) * 0.25;
+    // O verso das telas (visto por dentro do anel) fica quase apagado, sem mostrar a imagem espelhada.
+    if (!gl_FrontFacing) color *= 0.18;
     gl_FragColor = vec4(color * shade * uLight, uFade);
   }
 `
@@ -72,7 +70,7 @@ function arcGeometry(radius: number, width: number, height: number) {
 }
 
 /**
- * Carrossel dos projetos (classe, sem React): telas curvas girando em volta do dragão, entre partículas.
+ * Carrossel dos projetos (classe, sem React): telas curvas girando num anel, entre partículas.
  * Arrastar ou rolar gira o anel; ao soltar, ele encaixa no projeto mais próximo.
  * Só desenha enquanto está visível.
  */
@@ -81,7 +79,6 @@ export class ProjectsStage {
   private scene = new THREE.Scene()
   private camera = new THREE.PerspectiveCamera(FOV, 1, 0.1, 60)
   private ring = new THREE.Group()
-  private figure = new THREE.Group()
   private panels: Panel[] = []
   private dust: THREE.Points
   private raycaster = new THREE.Raycaster()
@@ -117,8 +114,8 @@ export class ProjectsStage {
     })
     container.appendChild(this.renderer.domElement)
 
-    // O anel fica levemente inclinado, com a frente mais baixa, para não tapar a cabeça do dragão.
-    this.ring.position.y = -0.7
+    // O anel fica levemente inclinado, com a frente mais baixa, para as telas de trás aparecerem por cima.
+    this.ring.position.y = -0.2
     this.ring.rotation.x = 0.1
     this.ring.rotation.z = -0.05
     const rimLeft = new THREE.DirectionalLight(0xdfe4ea, 1.1)
@@ -127,14 +124,7 @@ export class ProjectsStage {
     rimRight.position.set(3, 2, -3)
     const front = new THREE.DirectionalLight(0xfff4ea, 2.4)
     front.position.set(-1.5, 4, 5)
-    this.scene.add(
-      new THREE.HemisphereLight(0xe8e6e0, 0x2a2622, 0.55),
-      rimLeft,
-      rimRight,
-      front,
-      this.ring,
-      this.figure,
-    )
+    this.scene.add(new THREE.HemisphereLight(0xe8e6e0, 0x2a2622, 0.55), rimLeft, rimRight, front, this.ring)
 
     this.dust = createDust()
     this.scene.add(this.dust)
@@ -193,19 +183,9 @@ export class ProjectsStage {
   }
 
   private async load() {
-    const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)
     const textureLoader = new THREE.TextureLoader()
-    const [{ scene: dragon }, ...textures] = await Promise.all([
-      loader.loadAsync(DRAGON_URL),
-      ...this.options.covers.map((url) => textureLoader.loadAsync(url)),
-    ])
+    const textures = await Promise.all(this.options.covers.map((url) => textureLoader.loadAsync(url)))
     if (this.disposed) return
-
-    // De frente para a câmera, com a cabeça no meio da tela e as asas abertas até as bordas.
-    dragon.scale.setScalar(15.5)
-    dragon.position.set(0, -4.75, -5.2)
-    paintDragon(dragon)
-    this.figure.add(dragon)
 
     const geometry = arcGeometry(RADIUS, PANEL_WIDTH, PANEL_HEIGHT)
     const glowGeometry = arcGeometry(RADIUS - 0.02, PANEL_WIDTH * 1.14, PANEL_HEIGHT * 1.24)
@@ -319,11 +299,14 @@ export class ProjectsStage {
     const tangent = Math.tan(THREE.MathUtils.degToRad(FOV / 2))
     // Em tela estreita a câmera se afasta para o anel continuar cabendo.
     const narrow = aspect < 1.1
-    const distance = Math.max(9, 4.3 / (tangent * aspect))
-    this.ring.position.x = this.figure.position.x = 0
+    // Tela deitada: o anel inteiro aparece. Em pé: a tela da frente ocupa quase toda a largura.
+    const distance = narrow
+      ? PANEL_WIDTH / (0.85 * 2 * tangent * aspect) + RADIUS
+      : Math.max(11.5, 5 / (tangent * aspect))
+    this.ring.position.x = narrow ? 0 : WIDE_OFFSET
     this.camera.aspect = aspect
     this.camera.position.set(0, 0.3, distance)
-    this.camera.lookAt(0, narrow ? -1.5 : -0.15, 0)
+    this.camera.lookAt(0, narrow ? -1.6 : -0.1, 0)
     this.camera.updateProjectionMatrix()
     this.render()
   }
@@ -350,24 +333,20 @@ export class ProjectsStage {
     const speed = this.angle - before
     this.shift += (THREE.MathUtils.clamp(speed * 0.35, -0.03, 0.03) - this.shift) * 0.2
 
-    this.ring.rotation.y = this.angle + REST_ANGLE * -1
+    this.ring.rotation.y = this.angle
     if (!this.options.reducedMotion) {
-      this.figure.rotation.y = Math.sin(time * 0.4) * 0.025 - speed * 0.8
-      this.figure.position.y = Math.sin(time * 0.9) * 0.02
       this.dust.rotation.y = time * 0.015
     }
 
     this.panels.forEach((panel, index) => {
-      // Só as telas na frente ficam acesas; as de trás somem no escuro.
+      // Só as telas na frente ficam acesas; as de trás ficam apagadas, mostrando o anel inteiro.
       const facing = Math.cos(this.ring.rotation.y + index * this.step)
-      const light = THREE.MathUtils.lerp(0.14, 1, THREE.MathUtils.smoothstep(facing, -0.3, 0.6))
+      const light = THREE.MathUtils.lerp(0.12, 1, THREE.MathUtils.smoothstep(facing, -0.3, 0.6))
       panel.material.uniforms.uShift.value = this.shift
       panel.material.uniforms.uLight.value = light
-      // Passando atrás do dragão, a tela some, para não aparecer na frente das asas.
-      const fade = THREE.MathUtils.smoothstep(facing, -0.2, 0.2)
+      const fade = THREE.MathUtils.lerp(0.35, 1, THREE.MathUtils.smoothstep(facing, -0.2, 0.2))
       panel.material.uniforms.uFade.value = fade
       panel.glow.uniforms.uLight.value = light * fade
-      panel.mesh.visible = fade > 0.01
     })
   }
 
